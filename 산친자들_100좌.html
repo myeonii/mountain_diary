@@ -180,7 +180,7 @@
   button.btn.danger { background: #fef2f2; color: var(--danger); border-color: #fecaca; }
 
   /* recommendations */
-  .recos { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 14px; }
+  .recos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px; }
   @media (max-width: 900px) { .recos { grid-template-columns: 1fr; } }
 
   /* dashboard */
@@ -895,9 +895,89 @@ function renderRecos() {
           ${status}</li>`;
     }).join("");
 
+  // 3) 에베레스트 (누적 고도) 계산
+  const totalHeight = counts.reduce((acc, o) => {
+    return acc + (Number(o.m.height || 0) * o.ids.length);
+  }, 0);
+
+  const everestCount = (totalHeight / 8848).toFixed(1);
+
+  const elevationHtml = `
+    <li>
+      <span><b>우리 팀 누적 고도</b> <span class="who">${totalHeight.toLocaleString()}m</span></span>
+      <span class="who">에베레스트 정복 x${everestCount}</span>
+    </li>
+  `;
+
+  // 4) 산행 궁합 (Best Duo) 계산
+  const pairsMap = {};
+  counts.forEach(o => {
+    const p = o.ids; // climberIds(m.mountain_id) 결과값
+    if (p.length < 2) return; // 혼자 간 산은 제외
+
+    for (let i = 0; i < p.length; i++) {
+      for (let j = i + 1; j < p.length; j++) {
+        // user_id를 user_name으로 변환
+        const u1 = state.users.find(u => u.user_id === p[i])?.user_name || p[i];
+        const u2 = state.users.find(u => u.user_id === p[j])?.user_name || p[j];
+        
+        const pair = [u1, u2].sort().join(' & ');
+        pairsMap[pair] = (pairsMap[pair] || 0) + 1;
+      }
+    }
+  });
+
+  const sortedPairs = Object.entries(pairsMap)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5);
+
+const chemistryHtml = sortedPairs.length === 0
+    ? '<li class="who">아직 파티가 결성되지 않았습니다.</li>'
+    : sortedPairs.map(([pair, count], idx) => {
+        // 순위(idx)에 따라 무조건 칭호 부여
+        let tag = "";
+        if (idx === 0) tag = "💎 전설의 듀오";      // 1위
+        else if (idx === 1) tag = "🔥 불멸의 파티원"; // 2위
+        else if (idx === 2) tag = "🛡️ 든든한 등반 동료"; // 3위
+        else if (idx === 3) tag = "⚔️ 숙련된 모험가";   // 4위
+        else if (idx === 4) tag = "🌱 파티 모집 중";    // 5위
+
+        return `
+          <li>
+            <span>
+              <b style="color: #6366f1; margin-right: 8px;">RANK ${idx + 1}</b>
+              <b>${escapeHtml(pair)}</b>
+            </span>
+            <span class="who">${tag} <small style="opacity: 0.8;">(${count}회)</small></span>
+          </li>`;
+      }).join("");
+  // 5) 개인별 누적 고도 계산
+  const userHeights = state.users.map(u => {
+    // 해당 유저가 방문한 산들만 필터링해서 고도 합산
+    const total = counts.reduce((acc, o) => {
+      return o.ids.includes(u.user_id) ? acc + Number(o.m.height || 0) : acc;
+    }, 0);
+    
+    return { name: u.user_name, total };
+  }).sort((a, b) => b.total - a.total); // 높이순 정렬
+
+  const userHeightsHtml = userHeights.map(uh => `
+    <li>
+      <span><b>${escapeHtml(uh.name)}</b> <span class="who">${uh.total.toLocaleString()}m</span></span>
+      <span class="who">${(uh.total / 8848).toFixed(1)} 에베레스트</span>
+    </li>
+  `).join("");
+
   document.getElementById("recos").innerHTML = `
     <div class="reco"><h3>🎯 한 명만 빠진 산</h3><ul>${catchupHtml}</ul></div>
-    <div class="reco"><h3>${sea.emoji} ${escapeHtml(sea.title)}</h3><ul>${seasonalHtml}</ul></div>
+    <!-- <div class="reco"><h3>${sea.emoji} ${escapeHtml(sea.title)}</h3><ul>${seasonalHtml}</ul></div> -->
+    <div class="reco"><h3>🏔️ 누적 고도 리포트</h3>
+      <ul> ${elevationHtml}
+        <li style="list-style: none; margin-bottom: 5px;"><small class="who">🏃 멤버별 기여도</small></li>
+        ${userHeightsHtml}
+      </ul>
+    </div>
+    <div class="reco"> <h3>🤝 우리의 산행 궁합 (Best Duo)</h3><ul>${chemistryHtml}</ul></div>
   `;
 }
 
