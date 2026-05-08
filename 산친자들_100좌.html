@@ -1,0 +1,1637 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>산친자들 ♥ 100좌</title>
+<style>
+  :root {
+    --bg: #f4f6f3;
+    --card: #ffffff;
+    --ink: #1f2a25;
+    --muted: #6b7a72;
+    --line: #e3e8e3;
+    --primary: #2f6a48;
+    --primary-soft: #e6f1ea;
+    --accent: #c2410c;
+    --warn: #b45309;
+    --danger: #b91c1c;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Pretendard", "Noto Sans KR", sans-serif;
+    background: var(--bg); color: var(--ink); line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1280px; margin: 0 auto; padding: 20px 16px 80px; }
+
+  header.hero {
+    background: linear-gradient(135deg, #2f6a48 0%, #4a8b65 100%);
+    color: white; padding: 24px 20px; border-radius: 16px;
+    box-shadow: 0 8px 24px rgba(47,106,72,.18);
+    position: relative; overflow: hidden;
+  }
+  header.hero::before {
+    content: "⛰️"; position: absolute; right: -20px; top: -20px; font-size: 220px; opacity: .08;
+  }
+  header.hero h1 { margin: 0 0 6px; font-size: 24px; letter-spacing: -0.5px; }
+  header.hero p { margin: 0; opacity: .92; font-size: 13px; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 99px; background: rgba(255,255,255,.2); font-size: 11px; margin-left: 6px;}
+
+  .sub { color: var(--muted); font-size: 13px; }
+
+  /* top-grid: 멤버(좌) + 통계 4개 2x2(우) */
+  .top-grid {
+    display: grid; grid-template-columns: 1fr 280px; gap: 12px;
+    align-items: start; margin: 16px 0;
+  }
+  @media (max-width: 900px) {
+    .top-grid { grid-template-columns: 1fr; }
+  }
+
+  /* member cards */
+ .members {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 10px;
+ }  
+ .mcard {
+    background: var(--card); border-radius: 12px; padding: 14px;
+    border: 1px solid var(--line); position: relative;
+  }
+  .mcard .name { font-weight: 700; font-size: 14px; display: flex; align-items: center; gap: 6px; }
+  .mcard .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .mcard .count { font-size: 28px; font-weight: 800; margin: 6px 0 2px; letter-spacing: -1px; }
+  .mcard .count small { font-size: 14px; color: var(--muted); font-weight: 500; }
+  .mcard .medal {
+    position: absolute; top: 10px; right: 12px; font-size: 18px;
+  }
+  .mcard.gold { background: linear-gradient(135deg, #fffbeb, #fffefb); border-color: #fbbf24; }
+  .mcard.silver { background: linear-gradient(135deg, #f7f8fa, #ffffff); border-color: #cbd5e1; }
+  .mcard.bronze { background: linear-gradient(135deg, #fef3ec, #fffaf6); border-color: #fb923c; }
+  .bar { background: #eef1ee; height: 6px; border-radius: 99px; overflow: hidden; margin-top: 8px; }
+  .bar > span { display: block; height: 100%; border-radius: 99px; transition: width .3s; }
+
+  /* stats 2x2 (작게) */
+  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .stat {
+    background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px;
+  }
+  .stat .label { font-size: 11px; color: var(--muted); line-height: 1.3; }
+  .stat .v { font-size: 18px; font-weight: 800; letter-spacing: -.5px; margin-top: 4px; }
+
+  /* region map (지역별 한국 컨셉 지도) */
+  .kmap {
+    background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+    padding: 14px; margin-bottom: 14px;
+  }
+  .kmap h3 { margin: 0 0 10px; font-size: 14px; }
+  /* 좌: 타일 지도, 우: 선택 지역 상세 */
+  .kmap-body {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 14px;
+    align-items: start;
+  }
+  @media (max-width: 900px) {
+    .kmap-body { grid-template-columns: 1fr; }
+  }
+  .kmap-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-auto-rows: 78px;
+    gap: 6px;
+  }
+  .ktile { cursor: pointer; }
+  .ktile.active {
+    outline: 3px solid var(--primary); outline-offset: -1px;
+    box-shadow: 0 4px 14px rgba(47,106,72,.2);
+  }
+  .kmap-detail {
+    background: #f9fbf9; border: 1px solid var(--line);
+    border-radius: 10px; padding: 12px 14px;
+    max-height: 480px; overflow-y: auto;
+  }
+  .kmap-detail h4 { margin: 0 0 10px; font-size: 13px; display: flex; align-items: center; gap: 6px; }
+  .kmap-detail h4 .pill {
+    font-size: 11px; padding: 2px 8px; border-radius: 99px;
+    background: var(--primary-soft); color: var(--primary); font-weight: 500;
+  }
+  .kmd-empty { color: var(--muted); font-size: 13px; padding: 8px 0; }
+  .kmd-row {
+    padding: 8px 0; border-bottom: 1px dashed var(--line);
+  }
+  .kmd-row:last-child { border-bottom: 0; }
+  .kmd-name { font-size: 13px; font-weight: 600; }
+  .kmd-name small { color: var(--muted); font-weight: 400; margin-left: 6px; }
+  .kmd-mems { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px; }
+  .kmd-mem {
+    font-size: 11px; padding: 2px 9px; border-radius: 99px;
+    color: white; line-height: 1.5; white-space: nowrap;
+  }
+  .kmd-mem.no { background: #e7ece8; color: #95a39c; text-decoration: line-through; }
+  .ktile {
+    background: #eff5f1; border: 1px solid #d8e4dd; border-radius: 8px;
+    padding: 6px 8px; display: flex; flex-direction: column; justify-content: space-between;
+    transition: transform .1s;
+    position: relative; overflow: hidden;
+  }
+  .ktile:hover { transform: translateY(-1px); }
+  .ktile.l0 { background: #f4f6f3; }
+  .ktile.l1 { background: #dceadf; border-color: #b9d3c0; }
+  .ktile.l2 { background: #b6d8c0; border-color: #8fbf9c; }
+  .ktile.l3 { background: #7fb78c; border-color: #5fad75; color: white; }
+  .ktile.l4 { background: #2f6a48; border-color: #1f4d33; color: white; }
+  .ktile .rname { font-weight: 700; font-size: 13px; }
+  .ktile .rnum { font-size: 11px; opacity: .9; }
+  .ktile .rpct { font-size: 16px; font-weight: 800; letter-spacing: -.5px; align-self: flex-end; }
+  .ktile .rcrown { position: absolute; top: 4px; right: 6px; font-size: 12px; }
+  @media (max-width: 720px) {
+    .kmap-grid { grid-template-columns: repeat(2, 1fr); grid-auto-rows: 64px; }
+    .kmap-grid .ktile { grid-row: auto !important; grid-column: auto !important; padding: 5px 7px; }
+  }
+  .kmap-legend {
+    display: flex; align-items: center; gap: 8px; margin-top: 10px;
+    font-size: 11px; color: var(--muted); flex-wrap: wrap;
+  }
+  .kmap-legend .swatch { display: inline-flex; gap: 3px; }
+  .kmap-legend .swatch span { width: 14px; height: 14px; border-radius: 3px; }
+
+  /* filters */
+  .toolbar {
+    background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+    padding: 12px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+    margin-bottom: 12px;
+  }
+  .toolbar label { font-size: 12px; color: var(--muted); margin-right: 4px; }
+  .toolbar select, .toolbar input[type=text] {
+    border: 1px solid var(--line); background: white; padding: 6px 10px; border-radius: 8px;
+    font: inherit; color: inherit;
+  }
+  .toolbar .right { margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap;}
+  button.btn {
+    border: 1px solid var(--line); background: white; padding: 6px 12px; border-radius: 8px;
+    font: inherit; cursor: pointer;
+  }
+  button.btn:disabled { opacity: .5; cursor: not-allowed; }
+  button.btn.primary { background: var(--primary); color: white; border-color: var(--primary); }
+  button.btn.warn { background: #fff7ed; color: var(--accent); border-color: #fed7aa; }
+  button.btn.danger { background: #fef2f2; color: var(--danger); border-color: #fecaca; }
+
+  /* recommendations */
+  .recos { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 14px; }
+  @media (max-width: 900px) { .recos { grid-template-columns: 1fr; } }
+
+  /* dashboard */
+  .dash {
+    background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+    padding: 14px; margin-bottom: 14px;
+  }
+  .dash h3 { margin: 0 0 10px; font-size: 14px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .dash .yearbtns { display: inline-flex; gap: 4px; margin-left: auto; flex-wrap: wrap; }
+  .ybtn {
+    border: 1px solid var(--line); background: white; padding: 3px 10px; border-radius: 99px;
+    font: inherit; font-size: 12px; cursor: pointer; color: var(--ink);
+  }
+  .ybtn.active { background: var(--primary); color: white; border-color: var(--primary); }
+  .dash-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 900px) { .dash-grid { grid-template-columns: 1fr; } }
+  .bigstat { display: flex; flex-wrap: wrap; gap: 6px; align-items: baseline; margin-bottom: 10px; }
+  .bigstat .total { font-size: 28px; font-weight: 800; letter-spacing: -1px; }
+  .bigstat .total small { font-size: 13px; color: var(--muted); font-weight: 500; margin-left: 4px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .mchip {
+    display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px;
+    border-radius: 99px; background: #eef2ee; font-size: 12px;
+  }
+  .mchip .d { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+  .mchip b { font-variant-numeric: tabular-nums; }
+
+  /* quick log */
+  .qlog {
+    background: linear-gradient(135deg, #f0f7f3 0%, #f7faf7 100%);
+    border: 1px solid #d4e5da; border-radius: 12px; padding: 14px;
+    margin-bottom: 14px;
+    display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+  }
+  .qlog .qlabel { font-weight: 700; font-size: 14px; color: var(--primary); display: flex; align-items: center; gap: 6px; }
+  .qlog select, .qlog input[type=date], .qlog input[type=text] {
+    border: 1px solid var(--line); background: white; padding: 7px 10px; border-radius: 8px;
+    font: inherit; color: inherit; min-width: 0;
+  }
+  .qlog input[type=text] { min-width: 160px; }
+  .qlog button { background: var(--primary); color: white; border: 0; padding: 8px 14px; border-radius: 8px; font: inherit; font-weight: 600; cursor: pointer; }
+  .qlog button:disabled { opacity: .5; cursor: not-allowed; }
+  .qlog .hint { font-size: 11px; color: var(--muted); width: 100%; }
+
+  /* heatmap (GitHub 잔디) — 셀 크기는 JS가 컨테이너 너비 측정해 박는다 */
+  .heatmap-wrap { padding: 4px 0 2px; width: 100%; box-sizing: border-box; }
+  .heatmap {
+    display: grid;
+    grid-auto-flow: column;
+    gap: 2px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .hcell {
+    border-radius: 2px; background: #eff2ef;
+    cursor: default;
+  }
+  .hcell.l1 { background: #c6e0d0; }
+  .hcell.l2 { background: #8fc7a8; }
+  .hcell.l3 { background: #5fad81; }
+  .hcell.l4 { background: #2f6a48; }
+  .hcell.empty { background: transparent; }
+  .month-row {
+    display: grid;
+    gap: 2px;
+    margin-bottom: 4px;
+    color: var(--muted); font-size: 10px;
+    width: 100%;
+  }
+  .month-row span { grid-row: 1; white-space: nowrap; }
+  .scale {
+    display: inline-flex; align-items: center; gap: 4px;
+    color: var(--muted); font-size: 11px; margin-top: 8px;
+  }
+  .scale .swatch { display: inline-flex; gap: 2px; }
+  .scale .swatch span { width: 12px; height: 12px; border-radius: 2px; }
+
+  /* heatmap 커스텀 툴팁 (셀이 너무 작아 native title 안 떠서 직접 만듬) */
+  .htooltip {
+    position: fixed; pointer-events: none; z-index: 1000;
+    background: #1f2a25; color: white;
+    padding: 8px 10px; border-radius: 6px;
+    font-size: 11px; line-height: 1.5;
+    max-width: 260px; white-space: pre-line;
+    box-shadow: 0 6px 20px rgba(0,0,0,.25);
+    display: none;
+  }
+  .htooltip.show { display: block; }
+  .hcell:hover { outline: 1px solid #1f2a25; outline-offset: 1px; }
+
+  /* 최근 인증 — 5개 정도 보이는 높이로 잘라내고 스크롤 */
+  .feed-scroll {
+    max-height: 220px; overflow-y: auto; padding-right: 4px;
+  }
+
+  .feed { font-size: 13px; }
+  .feed .row { display: flex; gap: 10px; padding: 6px 0; border-bottom: 1px dashed var(--line); align-items: center; }
+  .feed .row:last-child { border-bottom: 0; }
+  .feed .date { color: var(--muted); font-variant-numeric: tabular-nums; font-size: 12px; min-width: 80px; }
+  .feed .mtn { flex: 1; font-weight: 600; }
+  .feed .mreg { color: var(--muted); font-weight: 400; font-size: 11px; margin-left: 4px; }
+  .feed .who { font-size: 11px; padding: 2px 8px; border-radius: 99px; color: white; }
+  .empty { color: var(--muted); font-size: 13px; padding: 8px 0; }
+  .reco {
+    background: var(--card); border-radius: 12px; padding: 14px; border: 1px solid var(--line);
+  }
+  .reco h3 { margin: 0 0 8px; font-size: 14px; display: flex; align-items: center; gap: 6px; }
+  .reco ul { margin: 0; padding-left: 0; list-style: none; font-size: 13px; }
+  .reco li { padding: 4px 0; border-bottom: 1px dashed var(--line); display: flex; justify-content: space-between; gap: 10px; }
+  .reco li:last-child { border-bottom: 0; }
+  .reco .who { color: var(--muted); font-size: 11px; }
+
+  /* table */
+  .table-wrap { background: var(--card); border: 1px solid var(--line); border-radius: 12px; overflow: auto; max-height: 70vh;}
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead th {
+    background: #f7faf7; text-align: left; padding: 10px 8px; font-size: 12px;
+    border-bottom: 1px solid var(--line); color: var(--muted); font-weight: 600;
+    white-space: nowrap; position: sticky; top: 0; z-index: 1;
+  }
+  tbody td { padding: 8px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+  tbody tr:hover td { background: #fbfdfb; }
+  td.center { text-align: center; }
+  td.num { text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; }
+  td.name { font-weight: 600; }
+  td.name small { color: var(--muted); font-weight: 400; margin-left: 4px; }
+  td.note { color: var(--warn); font-size: 11px; max-width: 140px; }
+  .tag { display: inline-block; font-size: 11px; padding: 2px 6px; border-radius: 6px; background: #eef2ee; color: #3b6048; }
+  .all-done { color: #ec4899; font-weight: 700; }
+  .none-done { color: #cbd5d0; }
+
+  /* check */
+  .ck {
+    width: 22px; height: 22px; border-radius: 6px; border: 2px solid #d4dad6;
+    background: white; display: inline-flex; align-items: center; justify-content: center;
+    cursor: pointer; user-select: none; font-size: 13px; font-weight: 800;
+    transition: transform .08s;
+  }
+  .ck.on { color: white; border-color: transparent; }
+  .ck:active { transform: scale(.92); }
+  .ck.locked { cursor: default; opacity: .9; }
+  .ck.busy { opacity: .4; pointer-events: none; }
+
+  .legend { font-size: 12px; color: var(--muted); margin: 6px 4px 8px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+  .legend span { display: inline-flex; align-items: center; gap: 4px; }
+  .legend .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+
+  .footer { font-size: 12px; color: var(--muted); margin-top: 24px; text-align: center; }
+
+  /* status banner */
+  .banner {
+    padding: 12px 14px; border-radius: 10px; margin-bottom: 14px; font-size: 13px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .banner.info { background: #eef5ff; color: #1e3a8a; border: 1px solid #c7dbff; }
+  .banner.err { background: #fef2f2; color: var(--danger); border: 1px solid #fecaca; }
+  .banner.ok { background: var(--primary-soft); color: var(--primary); border: 1px solid #bedccb; }
+  .banner pre { margin: 6px 0 0; font-size: 11px; white-space: pre-wrap; }
+
+  /* dialog */
+  .modal-bg {
+    position: fixed; inset: 0; background: rgba(15,30,22,.4); display: none;
+    align-items: center; justify-content: center; z-index: 50;
+  }
+  .modal-bg.open { display: flex; }
+  .modal {
+    background: white; border-radius: 14px; padding: 18px; max-width: 460px; width: 90%;
+    box-shadow: 0 20px 50px rgba(0,0,0,.2);
+  }
+  .modal h3 { margin: 0 0 10px; font-size: 16px; }
+  .modal label { display: block; font-size: 12px; color: var(--muted); margin: 8px 0 4px; }
+  .modal input[type=text] {
+    width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; font: inherit;
+  }
+  .modal .row { display: flex; gap: 8px; justify-content: flex-end; margin-top: 14px; }
+
+  details.box { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; margin-bottom: 14px; }
+  details.box > summary { cursor: pointer; font-weight: 600; }
+  details.box .body { margin-top: 8px; font-size: 13px; color: var(--muted); }
+  code.k { background: #eef2ee; padding: 1px 5px; border-radius: 4px; }
+
+  .mu { font-size: 12px; color: var(--muted); }
+
+  .userlist { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .userchip {
+    display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px;
+    background: #eef2ee; border-radius: 99px; font-size: 12px;
+  }
+  .userchip button { border: 0; background: transparent; cursor: pointer; color: var(--muted); padding: 0; font-size: 13px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="hero">
+    <h1>⛰️ 산친자들 ♥ 100좌 </h1>
+    <p>BAC 명산100 인증 현황 — 우리끼리 모아보는 간산 / 안간산</p>
+  </header>
+
+  <div id="banner" class="banner info" style="display:none"></div>
+
+  <div class="qlog" id="qlog">
+    <span class="qlabel">🥾 인증 등록</span>
+    <select id="qlog-user"><option value="">이름 선택</option></select>
+    <input type="text" id="qlog-mountain" list="qlog-mountain-list" placeholder="산 이름 검색…" autocomplete="off" />
+    <datalist id="qlog-mountain-list"></datalist>
+    <input type="date" id="qlog-date" />
+    <button id="qlog-add">+ 추가</button>
+    <div class="hint">이름 한 번 고르면 이 브라우저에 기억합니다. 산 이름을 입력하면 자동완성됩니다.</div>
+  </div>
+
+  <div class="top-grid">
+    <div class="members" id="members"></div>
+    <div class="stats">
+      <div class="stat"><div class="label">다 같이 간 산</div><div class="v" id="s-all">·</div></div>
+      <div class="stat"><div class="label">아무도 안 간 산</div><div class="v" id="s-none">·</div></div>
+      <div class="stat"><div class="label">한 명만 간 산</div><div class="v" id="s-one">·</div></div>
+      <div class="stat"><div class="label">팀 평균</div><div class="v" id="s-avg">·</div></div>
+    </div>
+  </div>
+
+  <div class="recos" id="recos"></div>
+
+  <div class="dash" id="dash"></div>
+
+  <div class="kmap" id="kmap"></div>
+
+  <div class="toolbar">
+    <label>지역</label>
+    <select id="f-region"><option value="">전체</option></select>
+    <label>상태</label>
+    <select id="f-status">
+      <option value="">전체</option>
+      <option value="all">다 같이 간 산</option>
+      <option value="none">안간산 (0명)</option>
+      <option value="one">한 명만</option>
+      <option value="catchup">한 명만 빠짐</option>
+      <option value="open">미완등</option>
+    </select>
+    <label>멤버</label>
+    <select id="f-member"><option value="">전체</option></select>
+    <select id="f-member-state">
+      <option value="not">안 간 산</option>
+      <option value="went">간 산</option>
+    </select>
+    <input type="text" id="f-search" placeholder="산이름 검색…" />
+    <div class="right">
+      <button class="btn" id="btn-edit">✏️ 편집모드</button>
+      <button class="btn" id="btn-manage">⚙️ 멤버/관리</button>
+      <button class="btn" id="btn-refresh">↻ 새로고침</button>
+    </div>
+  </div>
+
+  <div class="legend" id="legend"></div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr id="thead-row"></tr>
+      </thead>
+      <tbody id="rows"></tbody>
+    </table>
+  </div>
+
+  <!-- <details class="box" style="margin-top:14px">
+    <summary>도움말 / 처음 세팅</summary>
+    <div class="body">
+      <p>이 페이지는 Supabase 데이터베이스의 <code class="k">mountain</code>, <code class="k">user</code>, <code class="k">mountain_check</code> 세 테이블을 직접 읽고 씁니다.</p>
+      <p><b>편집모드</b>를 켜면 체크박스로 인증을 토글할 수 있어요. 체크는 <code class="k">mountain_check</code> 테이블에 행을 INSERT/DELETE 합니다.</p>
+      <p><b>멤버/관리</b> 버튼에서 멤버 추가/이름변경/삭제, 그리고 <code class="k">mountain</code> 테이블이 비어있을 때 시트 데이터로 100산을 한 번에 채우는 기능을 제공합니다.</p>
+      <p>다른 친구들이 동시에 업데이트하면 <b>새로고침</b> 버튼으로 최신 상태 가져올 수 있어요.</p>
+      <p style="color:var(--warn)"><b>RLS 안내</b>: Supabase 대시보드에서 세 테이블에 대해 RLS가 켜져 있으면 publishable 키로 접근이 막혀요. 5명 친구끼리만 쓰는 거면 일단 RLS 끄거나, "anon select/insert/delete 허용" 정책을 추가하세요.</p>
+    </div>
+  </details> 
+
+  <div class="footer">
+    데이터: Supabase REST API · 각 브라우저가 직접 호출 · 키는 publishable (anon) — service_role 아님
+  </div>-->
+</div>
+
+<!-- 관리 모달 -->
+<div class="modal-bg" id="modal">
+  <div class="modal">
+    <h3 id="modal-title">멤버 관리</h3>
+    <div id="modal-body"></div>
+    <div class="row">
+      <button class="btn" id="modal-close">닫기</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================================
+// 설정 — 본인 Supabase 정보
+// ============================================================================
+const SUPABASE_URL = "https://toelsfsukrjhndypyvgv.supabase.co";
+const SUPABASE_KEY = "sb_publishable_U6KBnGyta7UEvCAOqNZqQg_Yqypr5Ds";
+const REST = SUPABASE_URL.replace(/\/$/, "") + "/rest/v1";
+
+const HEADERS = {
+  "apikey": SUPABASE_KEY,
+  "Authorization": "Bearer " + SUPABASE_KEY,
+  "Content-Type": "application/json",
+};
+
+const COLORS = ["#0ea5e9","#ec4899","#8b5cf6","#f59e0b","#10b981","#ef4444","#6366f1","#14b8a6","#a855f7","#f97316"];
+
+// ============================================================================
+// API 헬퍼
+// ============================================================================
+async function api(path, opts = {}) {
+  const url = REST + path;
+  const res = await fetch(url, {
+    headers: { ...HEADERS, ...(opts.headers || {}) },
+    method: opts.method || "GET",
+    body: opts.body,
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`${res.status} ${res.statusText} — ${text}`);
+  }
+  if (res.status === 204) return null;
+  const ct = res.headers.get("content-type") || "";
+  if (ct.includes("application/json")) return res.json();
+  return res.text();
+}
+
+const Q = {
+  mountains: () => api("/mountain?select=*&order=mountain_id.asc"),
+  users:     () => api("/user?select=*&order=user_id.asc"),
+  checks:    () => api("/mountain_check?select=*"),
+
+  addCheck: (mountain_id, user_id) => api("/mountain_check", {
+    method: "POST",
+    headers: { "Prefer": "return=representation" },
+    body: JSON.stringify({
+      mountain_id, user_id,
+      climbed_at: new Date().toISOString().slice(0,10),
+    }),
+  }),
+  removeCheck: (mountain_id, user_id) => api(
+    `/mountain_check?mountain_id=eq.${mountain_id}&user_id=eq.${user_id}`,
+    { method: "DELETE", headers: { "Prefer": "return=minimal" } }
+  ),
+  addUser: (user_name) => api("/user", {
+    method: "POST",
+    headers: { "Prefer": "return=representation" },
+    body: JSON.stringify({ user_name }),
+  }),
+  updateUserName: (user_id, user_name) => api(
+    `/user?user_id=eq.${user_id}`,
+    { method: "PATCH", headers: { "Prefer": "return=representation" }, body: JSON.stringify({ user_name }) }
+  ),
+  removeUser: (user_id) => api(
+    `/user?user_id=eq.${user_id}`,
+    { method: "DELETE", headers: { "Prefer": "return=minimal" } }
+  ),
+  bulkInsertMountains: (rows) => api("/mountain", {
+    method: "POST",
+    headers: { "Prefer": "return=minimal" },
+    body: JSON.stringify(rows),
+  }),
+};
+
+// ============================================================================
+// 상태
+// ============================================================================
+let state = {
+  mountains: [],            // [{mountain_id, region, mountain_name, spot, height, address, note}]
+  users: [],                // [{user_id, user_name}]
+  checks: new Map(),        // key = `${mountain_id}:${user_id}`
+  edit: false,
+  filters: { region:"", status:"", member:"", memberState:"not", search:"" },
+};
+
+// ============================================================================
+// 초기 시드 데이터 (테이블 비어있을 때 한 번에 INSERT용)
+// ============================================================================
+const SEED_MOUNTAINS = [
+  [1,"강원","가리산","정상",1051,"강원 홍천군 두촌면",""],
+  [2,"강원","가리왕산","정상",1561,"강원 정선군 정선읍 회동리",""],
+  [3,"경남","가야산(경상)","정상",1430,"경남 합천군 가야면",""],
+  [4,"충남","가야산(충남)","정상",678,"충남 예산군",""],
+  [5,"울산","가지산","정상",1241,"울산 울주군 상북면","영남알프스 7봉"],
+  [6,"강원","감악산(원주)","원주/제천 정상석",945,"강원 원주시 신림면 용암리",""],
+  [7,"경기","감악산(파주)","정상",674,"경기 파주시 적성면 설마리",""],
+  [8,"충남","계룡산","관음봉",766,"충남 공주시","3.4~4.30 탐방로통제"],
+  [9,"강원","계방산","정상",1577,"강원 평창군 용평면 노동리",""],
+  [10,"서울","관악산","정상",629,"서울 관악구 대학동",""],
+  [11,"충남","광덕산","정상",699,"충남 천안시 동남구 광덕면",""],
+  [12,"충북","구병산","정상",877,"충북 보은군 마로면",""],
+  [13,"전북","구봉산","천왕봉",1002,"전북 진안군 주천면 운봉리",""],
+  [14,"충북","금수산","정상",1016,"충북 제천시 수산면 상천리",""],
+  [15,"경북","금오산","현월봉",977,"경북 구미시 남통동",""],
+  [16,"경남","금정산","고당봉",801,"경남 양산시 동면 가산리",""],
+  [17,"경북","남산(경주)","금오봉",468,"경북 경주시",""],
+  [18,"전북","내변산","관음봉",424,"전북 부안군 변산면",""],
+  [19,"경북","내연산","삼지봉",711,"경북 영덕군 남정면",""],
+  [20,"전북","내장산","신선봉",763,"전북 정읍시 내장동","2.15~4.30 탐방로통제"],
+  [21,"전남","달마산","달마봉",489,"전남 해남군 송지면","덕룡-두륜-달마"],
+  [22,"충남","대둔산","마천대",878,"충남 논산시",""],
+  [23,"충북","대야산","정상",931,"충북 괴산군 청천면",""],
+  [24,"전남","덕룡산","서봉",432,"전남","덕룡-두륜-달마"],
+  [25,"전북","덕유산","향적봉",1614,"전북 무주군 설천면","3.4~4.30 탐방로통제"],
+  [26,"강원","덕항산","정상",1071,"강원 삼척시 하장면",""],
+  [27,"충북","도락산","정상",964,"충북 단양군 단성면",""],
+  [28,"서울","도봉산","신선대",740,"서울 도봉구 도봉동",""],
+  [29,"전남","동악산","시루봉",735,"전남 곡성군 곡성읍",""],
+  [30,"전남","두륜산","가련봉",703,"전남 해남군 삼산면","덕룡-두륜-달마"],
+  [31,"강원","두타산","정상",1353,"강원 삼척시 하장면",""],
+  [32,"인천","마니산","정상",472,"인천 강화군 화도면",""],
+  [33,"전북","마이산","비룡대",686,"전북",""],
+  [34,"경기","명지산","정상",1267,"경기 가평군 북면",""],
+  [35,"전북","모악산","정상",793,"전북 완주군 구이면",""],
+  [36,"전남/광주","무등산","서석대",1100,"광주 동구 지산동","2.15~4.30 탐방로통제"],
+  [37,"충북","민주지산","정상",1241,"충북 영동군 용화면",""],
+  [38,"전남","방장산","정상",742,"전남 장성군 북이면",""],
+  [39,"강원","방태산","주억봉",1444,"강원 인제군 기린면",""],
+  [40,"강원","백덕산","정상",1350,"강원 영월군 수주면",""],
+  [41,"전남","백암산","상왕봉",741,"전남 장성군 북하면",""],
+  [42,"전남","백운산(광양)","상봉",1222,"전남 광양시 옥룡면",""],
+  [43,"강원","백운산(동강)","정상",882,"강원 정선군 신동읍",""],
+  [44,"서울","북한산","백운대",837,"서울 성북구 정릉동","3.4~5.15 탐방로통제"],
+  [45,"전남","불갑산","연실봉",516,"전남 영광군 불갑면",""],
+  [46,"대구","비슬산","천왕봉",1084,"대구 달성군 유가면",""],
+  [47,"강원","삼악산","용화봉",654,"강원 춘천시 서면",""],
+  [48,"전북","선운산","수리봉",336,"전북 고창군 아산면",""],
+  [49,"강원","설악산","대청봉",1708,"강원 양양군 서면","3.4~5.15 탐방로통제"],
+  [50,"경북","소백산","비로봉",1440,"경북 영주시 풍기읍","3.4~4.30 탐방로통제"],
+  [51,"경기","소요산","의상대",587,"경기 동두천시 소요동",""],
+  [52,"충북","속리산","천왕봉",1057,"충북 보은군 속리산면","3.4~4.30 탐방로통제"],
+  [53,"서울","수락산","주봉",640,"서울 노원구 상계동",""],
+  [54,"울산","신불산","정상",1159,"울산 울주군 상북면","영남알프스 7봉"],
+  [55,"경기","연인산","정상",1068,"경기 가평군 가평읍",""],
+  [56,"강원","오대산(노인봉)","노인봉",1338,"강원 강릉시 연곡면","3.4~5.15 탐방로통제"],
+  [57,"강원","오대산(비로봉)","비로봉",1565,"강원 평창군 진부면",""],
+  [58,"강원","오봉산(춘천)","정상",779,"강원 춘천시 북산면",""],
+  [59,"충남","오서산","정상",791,"충남 홍성군 광천읍",""],
+  [60,"경기","용문산","가섭봉",1157,"경기 양평군 용문면",""],
+  [61,"충남","용봉산","정상",381,"충남 홍성군 홍북면",""],
+  [62,"강원","용화산","정상",874,"강원 춘천시 사북면",""],
+  [63,"경기","운악산","서봉",936,"경기 포천시",""],
+  [64,"전북","운장산","운장대",1126,"전북 진안군 주천면",""],
+  [65,"충북","월악산","영봉",1097,"충북 제천시 한수면","3.4~4.30 탐방로통제"],
+  [66,"전남","월출산","천황봉",809,"전남 영암군 영암읍","2.15~4.30 탐방로통제"],
+  [67,"경기","유명산","정상",862,"경기 가평군 설악면",""],
+  [68,"강원","응봉산","정상",998,"강원 삼척시 가곡면",""],
+  [69,"전북","장안산","정상",1237,"전북 장수군 장수읍",""],
+  [70,"경남","재약산","수미봉",1189,"경남 밀양시 단장면","영남알프스 7봉"],
+  [71,"전남","조계산","장군봉",888,"전남 순천시 송광면",""],
+  [72,"경북","조령산","정상",1026,"경북 문경시 문경읍",""],
+  [73,"경북","주왕산","주봉",721,"경북 청송군 부동면","2.15~4.30 탐방로통제"],
+  [74,"경북","주흘산","주봉",1106,"경북 문경시",""],
+  [75,"경남","지리산(천왕봉)","천왕봉",1915,"경남 함양군","2.15~4.30 탐방로통제"],
+  [76,"전북","지리산(바래봉)","바래봉",1165,"전북 남원시 운봉읍","2.15~4.30 탐방로통제"],
+  [77,"전북","지리산(반야봉)","반야봉",1732,"전북 남원시","2.15~4.30 탐방로통제"],
+  [78,"서울","청계산","매봉",582,"서울 서초구 신원동",""],
+  [79,"경기","천마산","정상",812,"경기 남양주시 화도읍",""],
+  [80,"경남","천성산","2봉",855,"경남 양산시",""],
+  [81,"충북","천태산","정상",714,"충북 영동군 양산면",""],
+  [82,"전남","천관산","연대봉",724,"전남 장흥군 관산읍",""],
+  [83,"경북","청량산","장인봉",870,"경북 봉화군 명호면",""],
+  [84,"충북","청화산","정상",970,"충북 괴산군 청천면",""],
+  [85,"전남","축령산(장성)","정상",621,"전남 장성군 서삼면","2024.12.28 모두 완등"],
+  [86,"강원","치악산","비로봉",1288,"강원 원주시 소초면","3.4~4.30 탐방로통제"],
+  [87,"충남","칠갑산","정상",561,"충남 청양군 대치면",""],
+  [88,"충북","칠보산","정상",778,"충북 괴산군 칠성면",""],
+  [89,"강원","태백산","천제단/장군봉",1567,"강원 태백시","3.4~5.15 탐방로통제"],
+  [90,"강원","태화산","정상",1027,"강원 영월군 영월읍",""],
+  [91,"경북","팔공산","비로봉",1193,"경북 칠곡군","2.15~4.30 탐방로통제"],
+  [92,"강원","팔봉산(홍천)","2봉",327,"강원 홍천군 서면",""],
+  [93,"전남","팔영산","깃대봉",608,"전남 고흥군 점암면",""],
+  [94,"제주","한라산","백록담",1950,"제주",""],
+  [95,"강원","함백산","정상",1573,"강원 정선군 고한읍",""],
+  [96,"경기","화악산","중봉",1446,"경기 가평군 북면",""],
+  [97,"경남","화왕산","정상",756,"경남 창녕군 창녕읍",""],
+  [98,"경남","황매산","정상",1108,"경남 합천군 가회면",""],
+  [99,"경남","황석산","정상",1192,"경남 함양군 서하면",""],
+  [100,"경북","황악산","정상",1111,"경북 김천시 대항면",""],
+];
+function seedRows() {
+  return SEED_MOUNTAINS.map(r => ({
+    mountain_id: r[0], region: r[1], mountain_name: r[2],
+    spot: r[3], height: r[4], address: r[5], note: r[6] || null,
+  }));
+}
+
+// ============================================================================
+// 데이터 로드
+// ============================================================================
+async function loadAll() {
+  setBanner("info", "Supabase에서 데이터 가져오는 중…");
+  try {
+    const [mountains, users, checks] = await Promise.all([Q.mountains(), Q.users(), Q.checks()]);
+    state.mountains = mountains;
+    state.users = users;
+    state.checks = new Map();
+    checks.forEach(c => state.checks.set(c.mountain_id + ":" + c.user_id, c));
+
+    // 비어있는 케이스 처리
+    if (mountains.length === 0) {
+      setBanner("info",
+        "⚠️ mountain 테이블이 비어있어요. 시트 데이터로 100산을 한 번에 넣어드릴까요? '멤버/관리' 버튼 → '100산 시드 채우기'.");
+    } else if (users.length === 0) {
+      setBanner("info",
+        "👋 user 테이블이 비어있어요. '멤버/관리' 버튼에서 멤버를 추가하세요.");
+    } else {
+      hideBanner();
+    }
+    renderAll();
+  } catch (e) {
+    setBanner("err", "데이터를 불러오지 못했어요.\n\n" + e.message + "\n\n[체크리스트]\n• Supabase RLS가 켜져 있고 정책이 없으면 publishable 키로 접근이 막혀요.\n• 개발 중엔 RLS 끄거나, 세 테이블에 anon select/insert/delete 정책을 추가하세요.\n• URL과 publishable 키가 정확한지 확인.");
+  }
+}
+
+function setBanner(kind, msg) {
+  const b = document.getElementById("banner");
+  b.className = "banner " + kind;
+  b.style.display = "flex";
+  b.innerHTML = msg.includes("\n")
+    ? msg.split("\n").map((l, i) => i === 0 ? `<b>${l}</b>` : `<div>${l}</div>`).join("")
+    : `<b>${msg}</b>`;
+}
+function hideBanner() { document.getElementById("banner").style.display = "none"; }
+
+// ============================================================================
+// 렌더링
+// ============================================================================
+function userColor(idx) { return COLORS[idx % COLORS.length]; }
+function isClimbed(mid, uid) { return state.checks.has(mid + ":" + uid); }
+function userClimbCount(uid) {
+  let n = 0;
+  state.checks.forEach((_, k) => { if (k.endsWith(":" + uid)) n++; });
+  return n;
+}
+function climberIds(mid) {
+  const ids = [];
+  state.users.forEach(u => { if (isClimbed(mid, u.user_id)) ids.push(u.user_id); });
+  return ids;
+}
+function regionGroup(reg) { return (reg || "").split(/[\/ ]/)[0]; }
+
+function renderMembers() {
+  const host = document.getElementById("members");
+  host.innerHTML = "";
+  if (state.users.length === 0) {
+    host.innerHTML = `<div class="mcard"><div class="sub">멤버가 없어요. ⚙️ '멤버/관리'에서 추가하세요.</div></div>`;
+    return;
+  }
+
+  // 원래 인덱스(색깔 매핑용) 보존
+  const origIdx = new Map(state.users.map((u, i) => [u.user_id, i]));
+
+  // 완등수 내림차순 정렬 (동률은 user_id 오름차순)
+  const ranked = state.users.slice()
+    .map(u => ({ u, cnt: userClimbCount(u.user_id) }))
+    .sort((a, b) => b.cnt - a.cnt || a.u.user_id - b.u.user_id);
+
+  const total = state.mountains.length || 100;
+  const MEDAL = ["🥇","🥈","🥉"];
+  const RANKCLS = ["gold","silver","bronze"];
+
+  ranked.forEach((row, rank) => {
+    const u = row.u;
+    const cnt = row.cnt;
+    const pct = total ? Math.round(cnt / total * 100) : 0;
+    const i = origIdx.get(u.user_id);
+    const c = userColor(i);
+    const medal = (rank < 3 && cnt > 0) ? MEDAL[rank] : "";
+    const cls = "mcard" + (rank < 3 && cnt > 0 ? " " + RANKCLS[rank] : "");
+    const card = document.createElement("div");
+    card.className = cls;
+    card.innerHTML = `
+      ${medal ? `<span class="medal" title="${rank+1}위">${medal}</span>` : ""}
+      <div class="name"><span class="dot" style="background:${c}"></span>${escapeHtml(u.user_name)}</div>
+      <div class="count">${cnt}<small> / ${total}</small></div>
+      <div class="sub">${pct}% 완등 · ${rank+1}위</div>
+      <div class="bar"><span style="width:${pct}%; background:${c}"></span></div>
+    `;
+    host.appendChild(card);
+  });
+}
+
+function renderStats() {
+  const counts = state.mountains.map(m => climberIds(m.mountain_id).length);
+  const total = state.users.length;
+  const all = total === 0 ? 0 : counts.filter(n => n === total).length;
+  const none = counts.filter(n => n === 0).length;
+  const one = counts.filter(n => n === 1).length;
+  const sum = counts.reduce((a,b)=>a+b,0);
+  const avg = (state.mountains.length === 0 || total === 0) ? 0
+    : Math.round(sum / (total * state.mountains.length) * 100);
+  document.getElementById("s-all").textContent = all + " 개";
+  document.getElementById("s-none").textContent = none + " 개";
+  document.getElementById("s-one").textContent = one + " 개";
+  document.getElementById("s-avg").textContent = avg + " %";
+}
+
+// 계절별 (월별) 추천 — 큐레이션
+const SEASONAL = {
+  1:  { emoji: "🌨️", title: "1월 — 새해 일출 & 상고대", picks: [
+    { name: "태백산",        reason: "천제단 새해 일출 + 주목 상고대" },
+    { name: "덕유산",        reason: "향적봉 상고대 명소" },
+    { name: "한라산",        reason: "백록담 설경" },
+    { name: "함백산",        reason: "은하수·새해 일출" },
+  ]},
+  2:  { emoji: "❄️", title: "2월 — 한겨울 설경", picks: [
+    { name: "태백산",        reason: "주목 상고대 절정기" },
+    { name: "덕유산",        reason: "상고대 + 설경" },
+    { name: "한라산",        reason: "윗세오름 설경" },
+    { name: "가야산(경상)",  reason: "겨울 산행의 운치" },
+  ]},
+  3:  { emoji: "🌷", title: "3월 — 매화·이른 봄", picks: [
+    { name: "마이산",        reason: "탑사 일대 벚꽃 시작" },
+    { name: "내변산",        reason: "변산반도 해안 봄꽃" },
+    { name: "천관산",        reason: "동백·진달래" },
+    { name: "무등산",        reason: "서석대에 깨어나는 봄" },
+  ]},
+  4:  { emoji: "🌸", title: "4월 — 벚꽃·진달래", picks: [
+    { name: "비슬산",        reason: "참꽃(진달래) 군락 (4월 중하)" },
+    { name: "천관산",        reason: "진달래 능선" },
+    { name: "마이산",        reason: "벚꽃 명소" },
+    { name: "대둔산",        reason: "케이블카·진달래" },
+  ]},
+  5:  { emoji: "🌺", title: "5월 — 철쭉·신록", picks: [
+    { name: "황매산",        reason: "철쭉제 (5월 초중)" },
+    { name: "지리산(바래봉)", reason: "바래봉 철쭉 군락 (5월 중하)" },
+    { name: "소백산",        reason: "비로봉 철쭉 (5월 말~6월 초)" },
+    { name: "가야산(경상)",  reason: "철쭉과 신록" },
+  ]},
+  6:  { emoji: "🌿", title: "6월 — 야생화·신록", picks: [
+    { name: "태백산",        reason: "야생화·시원한 능선" },
+    { name: "함백산",        reason: "야생화 만개한 천상의 화원" },
+    { name: "계방산",        reason: "신록 절정" },
+    { name: "화악산",        reason: "수도권 신록 산행" },
+  ]},
+  7:  { emoji: "🌧️", title: "7월 — 운해·계곡", picks: [
+    { name: "설악산",        reason: "토왕성폭포·운해" },
+    { name: "지리산(천왕봉)", reason: "천왕일출·운해" },
+    { name: "무등산",        reason: "서석대 시원함" },
+    { name: "함백산",        reason: "고지대 청량감" },
+  ]},
+  8:  { emoji: "🏞️", title: "8월 — 한여름 계곡 피서", picks: [
+    { name: "대야산",        reason: "용추계곡" },
+    { name: "응봉산",        reason: "덕풍계곡" },
+    { name: "계방산",        reason: "운두령 계곡" },
+    { name: "가리왕산",      reason: "한적한 청정 계곡" },
+  ]},
+  9:  { emoji: "🍃", title: "9월 — 가을의 시작", picks: [
+    { name: "한라산",        reason: "단풍 가장 먼저" },
+    { name: "함백산",        reason: "가을 야생화" },
+    { name: "백덕산",        reason: "고요한 능선" },
+    { name: "오대산(비로봉)", reason: "이른 단풍" },
+  ]},
+  10: { emoji: "🍁", title: "10월 — 단풍 절정 (북부)", picks: [
+    { name: "설악산",        reason: "10월 중순 단풍 절정" },
+    { name: "오대산(비로봉)", reason: "단풍 명소" },
+    { name: "치악산",        reason: "가을 능선" },
+    { name: "주왕산",        reason: "주산지 반영" },
+  ]},
+  11: { emoji: "🍂", title: "11월 — 늦단풍 (남부)", picks: [
+    { name: "내장산",        reason: "11월 초중 단풍 절정" },
+    { name: "무등산",        reason: "서석대 단풍" },
+    { name: "두륜산",        reason: "남도 단풍·동백" },
+    { name: "가야산(경상)",  reason: "만추 능선" },
+  ]},
+  12: { emoji: "⛄", title: "12월 — 초겨울 설경", picks: [
+    { name: "태백산",        reason: "첫 상고대" },
+    { name: "덕유산",        reason: "향적봉 상고대" },
+    { name: "한라산",        reason: "백록담 첫눈" },
+    { name: "무등산",        reason: "서석대 설경" },
+  ]},
+};
+
+function renderRecos() {
+  const total = state.users.length;
+  const counts = state.mountains.map(m => ({m, ids: climberIds(m.mountain_id)}));
+
+  // 1) 한 명만 빠진 산
+  const catchup = total >= 2
+    ? counts.filter(o => o.ids.length === total - 1).slice(0, 6)
+    : [];
+
+  // 2) 이번 달에 가기 좋은 산 (큐레이션 + 인증 상태)
+  const m = new Date().getMonth() + 1;
+  const sea = SEASONAL[m] || SEASONAL[5];
+  const seasonalItems = sea.picks.map(p => {
+    const mtn = state.mountains.find(mm => mm.mountain_name === p.name);
+    return { ...p, mountain: mtn };
+  }).filter(it => it.mountain);
+
+  function who(ids) {
+    const not = state.users.filter(u => !ids.includes(u.user_id));
+    return not.map(u => u.user_name).join(", ");
+  }
+
+  const catchupHtml = catchup.length === 0
+    ? '<li class="who">해당 없음</li>'
+    : catchup.map(o => `
+        <li><span><b>${escapeHtml(o.m.mountain_name)}</b> <span class="who">${escapeHtml(o.m.region)}</span></span>
+          <span class="who">${escapeHtml(who(o.ids))} 만 안 감</span></li>`).join("");
+
+  const seasonalHtml = seasonalItems.length === 0
+    ? '<li class="who">데이터 없음</li>'
+    : seasonalItems.map(o => {
+      const ids = climberIds(o.mountain.mountain_id);
+      const cnt = ids.length;
+      let status;
+      if (total > 0 && cnt === total) status = '<span class="who" style="color:#ec4899">♥ 다같이</span>';
+      else if (cnt === 0) status = '<span class="who">아직 아무도</span>';
+      else status = `<span class="who">${cnt}/${total}</span>`;
+      return `
+        <li><span><b>${escapeHtml(o.mountain.mountain_name)}</b> <span class="who">${escapeHtml(o.reason)}</span></span>
+          ${status}</li>`;
+    }).join("");
+
+  document.getElementById("recos").innerHTML = `
+    <div class="reco"><h3>🎯 한 명만 빠진 산</h3><ul>${catchupHtml}</ul></div>
+    <div class="reco"><h3>${sea.emoji} ${escapeHtml(sea.title)}</h3><ul>${seasonalHtml}</ul></div>
+  `;
+}
+
+// ============================================================================
+// 대시보드: 히트맵 + 멤버별 통계 + 최근 인증
+// ============================================================================
+function ymd(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,"0");
+  const day = String(d.getDate()).padStart(2,"0");
+  return `${y}-${m}-${day}`;
+}
+
+function renderDashboard() {
+  const dated = [];
+  state.checks.forEach(c => {
+    if (c.climbed_at) {
+      const d = new Date(c.climbed_at);
+      if (!isNaN(d)) dated.push({...c, dt: d, year: d.getFullYear(), month: d.getMonth()+1});
+    }
+  });
+
+  const allYears = Array.from(new Set(dated.map(d => d.year))).sort((a,b)=>b-a);
+  const today = new Date();
+  if (state.selectedYear === undefined) {
+    state.selectedYear = allYears[0] || today.getFullYear();
+  }
+  const sel = state.selectedYear;
+
+  // 연도 버튼
+  const yearBtns = [...allYears, today.getFullYear()].filter((v,i,a) => a.indexOf(v) === i)
+    .sort((a,b)=>b-a)
+    .map(y => `<button class="ybtn ${y === sel ? "active" : ""}" data-y="${y}">${y}</button>`).join("");
+
+  // 선택된 연도 데이터
+  const inYear = dated.filter(d => d.year === sel);
+  const total = inYear.length;
+  const userById = new Map(state.users.map(u => [u.user_id, u]));
+  const userIdx = new Map(state.users.map((u,i) => [u.user_id, i]));
+
+  const memberCounts = new Map();
+  inYear.forEach(c => memberCounts.set(c.user_id, (memberCounts.get(c.user_id) || 0) + 1));
+
+  const chips = state.users.map((u, i) => {
+    const cnt = memberCounts.get(u.user_id) || 0;
+    return `<span class="mchip"><span class="d" style="background:${userColor(i)}"></span>${escapeHtml(u.user_name)} <b>${cnt}</b></span>`;
+  }).join("");
+
+  // 히트맵 데이터
+  const dayMap = new Map();
+  inYear.forEach(c => {
+    const k = c.climbed_at;
+    if (!dayMap.has(k)) dayMap.set(k, []);
+    dayMap.get(k).push(c);
+  });
+
+  // 그리드: Jan 1 이전 일요일부터 Dec 31 이후 토요일까지
+  const yStart = new Date(sel, 0, 1);
+  const yEnd = new Date(sel, 11, 31);
+  const gStart = new Date(yStart);
+  gStart.setDate(yStart.getDate() - yStart.getDay()); // 직전 일요일
+  const gEnd = new Date(yEnd);
+  gEnd.setDate(yEnd.getDate() + (6 - yEnd.getDay())); // 다음 토요일
+
+  // 셀 생성
+  let cellsHtml = "";
+  const monthCols = []; // {month, colIndex}
+  let col = 0;
+  let prevMonth = -1;
+  for (let d = new Date(gStart); d <= gEnd; d.setDate(d.getDate()+1)) {
+    const inRange = d >= yStart && d <= yEnd;
+    const k = ymd(d);
+    const list = inRange ? (dayMap.get(k) || []) : [];
+    const cnt = list.length;
+    let cls = "hcell";
+    if (!inRange) cls += " empty";
+    else if (cnt === 0) cls += "";
+    else if (cnt === 1) cls += " l1";
+    else if (cnt === 2) cls += " l2";
+    else if (cnt <= 4) cls += " l3";
+    else cls += " l4";
+
+    let title = "";
+    if (inRange) {
+      if (cnt === 0) title = `${k}\n인증 없음`;
+      else {
+        const lines = list.map(c => {
+          const m = state.mountains.find(mm => mm.mountain_id === c.mountain_id);
+          const u = userById.get(c.user_id);
+          return `· ${u ? u.user_name : '?'} → ${m ? m.mountain_name : '?'}`;
+        });
+        title = `${k}\n${lines.join("\n")}`;
+      }
+    }
+    // \n 을 HTML attribute 에 보존하기 위해 &#10; 로 인코딩
+    const tipAttr = escapeAttr(title).replace(/\n/g, "&#10;");
+    cellsHtml += `<div class="${cls}" data-tip="${tipAttr}"></div>`;
+
+    // dow 0=Sunday → 새 컬럼 시작
+    if (d.getDay() === 0 && d > gStart) col++;
+    if (inRange && d.getMonth() !== prevMonth) {
+      monthCols.push({ month: d.getMonth()+1, col });
+      prevMonth = d.getMonth();
+    }
+  }
+
+  // 월 레이블
+  const monthLabels = monthCols.map(o => `<span style="grid-column:${o.col + 1}">${o.month}월</span>`).join("");
+
+  // 최근 인증 피드 (선택 연도 무관, 최근 30개까지 — 우측 스크롤)
+  const recent = dated.slice().sort((a,b) => b.dt - a.dt).slice(0, 30);
+  const feedHtml = recent.length === 0
+    ? '<div class="empty">아직 등록된 인증이 없어요. 위 "🥾 인증 등록"에서 추가해보세요.</div>'
+    : recent.map(c => {
+      const m = state.mountains.find(mm => mm.mountain_id === c.mountain_id);
+      const u = userById.get(c.user_id);
+      const i = userIdx.get(c.user_id) ?? 0;
+      return `<div class="row">
+        <div class="date">${escapeHtml(c.climbed_at)}</div>
+        <div class="mtn">${m ? escapeHtml(m.mountain_name) : "?"}<span class="mreg">${m ? escapeHtml(m.region) : ""}</span></div>
+        <span class="who" style="background:${userColor(i)}">${u ? escapeHtml(u.user_name) : "?"}</span>
+      </div>`;
+    }).join("");
+
+  const cols = col + 1;
+  document.getElementById("dash").innerHTML = `
+    <h3>📊 인증 활동 <span class="yearbtns">${yearBtns}</span></h3>
+    <div class="dash-grid">
+      <div>
+        <div class="bigstat">
+          <div class="total">${total}<small> 건 (${sel}년)</small></div>
+        </div>
+        <div class="chips">${chips || '<span class="empty">멤버 없음</span>'}</div>
+        <div class="heatmap-wrap">
+          <div class="month-row" id="heatmap-months">${monthLabels}</div>
+          <div class="heatmap" id="heatmap-grid" data-cols="${cols}">${cellsHtml}</div>
+        </div>
+        <div class="scale">
+          적게
+          <span class="swatch">
+            <span style="background:#eff2ef"></span>
+            <span style="background:#c6e0d0"></span>
+            <span style="background:#8fc7a8"></span>
+            <span style="background:#5fad81"></span>
+            <span style="background:#2f6a48"></span>
+          </span>
+          많이 · 셀 hover 시 상세
+        </div>
+      </div>
+      <div>
+        <div class="sub" style="font-weight:600;color:var(--ink);margin-bottom:6px">🕒 최근 인증 (전체 기간)</div>
+        <div class="feed feed-scroll">${feedHtml}</div>
+      </div>
+    </div>
+  `;
+
+  // 연도 버튼 이벤트
+  document.querySelectorAll("#dash .ybtn").forEach(b => {
+    b.addEventListener("click", () => {
+      state.selectedYear = +b.dataset.y;
+      renderDashboard();
+    });
+  });
+
+  // 히트맵 셀 크기 정확하게 박기 (CSS aspect-ratio 가 grid stretch 와 충돌하는 문제 회피)
+  fitHeatmap();
+  attachHeatmapTooltip();
+}
+
+// 커스텀 툴팁 (셀 hover 시 날짜+멤버+산 표시)
+function getHeatmapTooltip() {
+  let tt = document.getElementById("__htip");
+  if (!tt) {
+    tt = document.createElement("div");
+    tt.id = "__htip";
+    tt.className = "htooltip";
+    document.body.appendChild(tt);
+  }
+  return tt;
+}
+function attachHeatmapTooltip() {
+  const grid = document.getElementById("heatmap-grid");
+  if (!grid) return;
+  const tt = getHeatmapTooltip();
+  grid.addEventListener("mousemove", e => {
+    const cell = e.target.closest(".hcell");
+    if (!cell || !cell.dataset.tip) { tt.classList.remove("show"); return; }
+    tt.textContent = cell.dataset.tip;
+    tt.classList.add("show");
+    // 화면 가장자리 회피해 위치
+    const tw = tt.offsetWidth, th = tt.offsetHeight;
+    let x = e.clientX + 12;
+    let y = e.clientY + 12;
+    if (x + tw > window.innerWidth - 8) x = e.clientX - tw - 12;
+    if (y + th > window.innerHeight - 8) y = e.clientY - th - 12;
+    tt.style.left = x + "px";
+    tt.style.top = y + "px";
+  });
+  grid.addEventListener("mouseleave", () => {
+    tt.classList.remove("show");
+  });
+}
+
+function fitHeatmap() {
+  const grid = document.getElementById("heatmap-grid");
+  const months = document.getElementById("heatmap-months");
+  if (!grid) return;
+  const cols = +grid.dataset.cols || 53;
+  const gap = 2;
+  const w = grid.clientWidth;
+  if (w <= 0) return;
+  let cell = Math.floor((w - (cols - 1) * gap) / cols);
+  if (cell < 4) cell = 4;
+  grid.style.gridTemplateColumns = `repeat(${cols}, ${cell}px)`;
+  grid.style.gridTemplateRows = `repeat(7, ${cell}px)`;
+  if (months) months.style.gridTemplateColumns = `repeat(${cols}, ${cell}px)`;
+}
+
+// 창 리사이즈/오리엔테이션 변경 시 다시 맞춤
+window.addEventListener("resize", () => {
+  if (window.__hmTimer) clearTimeout(window.__hmTimer);
+  window.__hmTimer = setTimeout(fitHeatmap, 80);
+});
+
+function renderTable() {
+  // header
+  const head = document.getElementById("thead-row");
+  head.innerHTML = `
+    <th class="num">#</th>
+    <th>산 이름</th>
+    <th>지역</th>
+    <th>인증지</th>
+    <th class="num">높이</th>
+    ${state.users.map((u, i) => `<th class="center"><span style="display:inline-block;width:10px;height:10px;background:${userColor(i)};border-radius:50%;margin-right:4px"></span>${escapeHtml(short(u.user_name))}</th>`).join("")}
+    <th class="center">합</th>
+    <th>참고</th>
+  `;
+
+  // legend
+  const lg = document.getElementById("legend");
+  lg.innerHTML = state.users.map((u, i) => `<span><span class="dot" style="background:${userColor(i)}"></span>${escapeHtml(u.user_name)}</span>`).join("") +
+    ` <span style="margin-left:auto">♥ = 다같이 완등 · 편집모드 ON 시 체크박스 클릭</span>`;
+
+  // region filter options
+  const sel = document.getElementById("f-region");
+  const cur = sel.value;
+  const set = Array.from(new Set(state.mountains.map(m => m.region))).sort();
+  sel.innerHTML = '<option value="">전체</option>' + set.map(r => `<option value="${escapeAttr(r)}">${escapeHtml(r)}</option>`).join("");
+  sel.value = cur;
+
+  // member filter
+  const ms = document.getElementById("f-member");
+  const curM = ms.value;
+  ms.innerHTML = '<option value="">전체</option>' + state.users.map(u => `<option value="${u.user_id}">${escapeHtml(u.user_name)}</option>`).join("");
+  ms.value = curM;
+
+  // rows
+  const tb = document.getElementById("rows");
+  let html = "";
+  let shown = 0;
+  for (const m of state.mountains) {
+    if (!passFilter(m)) continue;
+    const ids = climberIds(m.mountain_id);
+    const cnt = ids.length;
+    let sumCell;
+    if (state.users.length > 0 && cnt === state.users.length) sumCell = '<span class="all-done">♥</span>';
+    else if (cnt === 0) sumCell = '<span class="none-done">·</span>';
+    else sumCell = cnt;
+
+    const checks = state.users.map((u, i) => {
+      const on = ids.includes(u.user_id);
+      const cls = "ck" + (on ? " on" : "") + (state.edit ? "" : " locked");
+      const style = on ? `style="background:${userColor(i)}"` : "";
+      return `<td class="center"><span class="${cls}" data-mid="${m.mountain_id}" data-uid="${u.user_id}" ${style}>${on ? "✓" : ""}</span></td>`;
+    }).join("");
+
+    html += `<tr>
+      <td class="num">${m.mountain_id}</td>
+      <td class="name">${escapeHtml(m.mountain_name)}<br><span class="sub" style="font-size:11px">${escapeHtml(m.spot || "")}</span></td>
+      <td><span class="tag">${escapeHtml(m.region || "")}</span></td>
+      <td>${escapeHtml(m.address || "")}</td>
+      <td class="num">${m.height ? m.height.toLocaleString() + "m" : ""}</td>
+      ${checks}
+      <td class="center"><b>${sumCell}</b></td>
+      <td class="note">${escapeHtml(m.note || "")}</td>
+    </tr>`;
+    shown++;
+  }
+  if (!html) html = `<tr><td colspan="20" style="padding:24px;text-align:center;color:var(--muted)">조건에 맞는 산이 없어요</td></tr>`;
+  tb.innerHTML = html;
+
+  tb.querySelectorAll(".ck").forEach(el => {
+    el.addEventListener("click", onToggleCheck);
+  });
+}
+
+function passFilter(m) {
+  const f = state.filters;
+  const ids = climberIds(m.mountain_id);
+  const sum = ids.length;
+  const total = state.users.length;
+  if (f.region && m.region !== f.region) return false;
+  if (f.status === "all" && (total === 0 || sum !== total)) return false;
+  if (f.status === "none" && sum !== 0) return false;
+  if (f.status === "one" && sum !== 1) return false;
+  if (f.status === "catchup" && (total < 2 || sum !== total - 1)) return false;
+  if (f.status === "open" && (total > 0 && sum === total)) return false;
+  if (f.member !== "") {
+    const uid = +f.member;
+    const went = ids.includes(uid);
+    if (f.memberState === "not" && went) return false;
+    if (f.memberState === "went" && !went) return false;
+  }
+  if (f.search) {
+    const q = f.search.toLowerCase();
+    const hay = [m.mountain_name, m.region, m.address, m.spot].filter(Boolean).join(" ").toLowerCase();
+    if (!hay.includes(q)) return false;
+  }
+  return true;
+}
+
+function renderAll() {
+  renderMembers();
+  renderStats();
+  renderRecos();
+  renderDashboard();
+  renderMap();
+  renderQuickLog();
+  renderTable();
+  document.getElementById("btn-edit").textContent = state.edit ? "🔒 편집 끄기" : "✏️ 편집모드";
+  document.getElementById("btn-edit").classList.toggle("primary", state.edit);
+}
+
+// ============================================================================
+// 지역별 지도 (한국 컨셉 타일)
+// ============================================================================
+// 그리드 좌표 (row, col, rowSpan, colSpan) — 4컬럼 × 5행, 한국 모양 컨셉
+const REGION_LAYOUT = {
+  "인천": [1, 1], "서울": [1, 2], "경기": [1, 3], "강원": [1, 4],
+  "충남": [2, 1], "충북": [2, 2], "경북": [2, 3], "울산": [2, 4],
+  "전북": [3, 1], "광주": [3, 2], "대구": [3, 3], "부산": [3, 4],
+  "전남": [4, 1, 1, 2], "경남": [4, 3, 1, 2],
+  "제주": [5, 1, 1, 4],
+};
+const REGION_ALIAS = {
+  "전남/광주": "전남",
+  "경북 대구": "대구",
+};
+
+function renderMap() {
+  // 지역별 집계
+  const groups = new Map();
+  state.mountains.forEach(m => {
+    const raw = (m.region || "").trim();
+    const reg = REGION_ALIAS[raw] || regionGroup(raw);
+    if (!REGION_LAYOUT[reg]) return;
+    if (!groups.has(reg)) groups.set(reg, { mountains: [], climbs: 0, allClimbed: 0 });
+    const g = groups.get(reg);
+    g.mountains.push(m);
+    const cnt = climberIds(m.mountain_id).length;
+    g.climbs += cnt;
+    if (state.users.length > 0 && cnt === state.users.length) g.allClimbed++;
+  });
+
+  // 1등 (다같이 간 산 비율 최고) 찾기
+  let topReg = null, topRatio = -1;
+  groups.forEach((g, reg) => {
+    const r = g.mountains.length === 0 ? 0 : g.allClimbed / g.mountains.length;
+    if (r > topRatio) { topRatio = r; topReg = reg; }
+  });
+
+  // 선택된 지역 자동 설정 (없으면 첫 번째 데이터 있는 지역)
+  if (!state.selectedRegion || !groups.has(state.selectedRegion)) {
+    state.selectedRegion = topReg || (groups.size > 0 ? groups.keys().next().value : null);
+  }
+
+  let tiles = "";
+  Object.entries(REGION_LAYOUT).forEach(([reg, pos]) => {
+    const [r, c, rs = 1, cs = 1] = pos;
+    const g = groups.get(reg) || { mountains: [], climbs: 0, allClimbed: 0 };
+    const total = g.mountains.length;
+    const maxClimbs = total * Math.max(state.users.length, 1);
+    const pct = maxClimbs ? Math.round(g.climbs / maxClimbs * 100) : 0;
+    const lvl = total === 0 ? "l0"
+              : pct === 0 ? "l0"
+              : pct < 25 ? "l1"
+              : pct < 50 ? "l2"
+              : pct < 75 ? "l3" : "l4";
+    const crown = (reg === topReg && g.allClimbed > 0) ? '<span class="rcrown" title="다같이 간 비율 최고">👑</span>' : '';
+    const sub = total === 0
+      ? '<div class="rnum">(없음)</div>'
+      : `<div class="rnum">${g.allClimbed}/${total} 완등</div>`;
+    const active = (reg === state.selectedRegion) ? " active" : "";
+    tiles += `
+      <div class="ktile ${lvl}${active}" data-r="${escapeAttr(reg)}"
+           style="grid-row:${r} / span ${rs}; grid-column:${c} / span ${cs}"
+           title="${escapeAttr(reg)} · ${total}산 · 다같이 ${g.allClimbed}/${total} · 팀완성도 ${pct}%">
+        ${crown}
+        <div class="rname">${escapeHtml(reg)}</div>
+        ${sub}
+        <div class="rpct">${pct}%</div>
+      </div>`;
+  });
+
+  // 선택 지역의 상세 패널
+  const detailHtml = renderRegionDetail(state.selectedRegion, groups);
+
+  document.getElementById("kmap").innerHTML = `
+    <h3>🗺️ 지역별 진행도 <span class="sub" style="font-weight:400;margin-left:8px">타일을 클릭하면 그 지역 산 목록 · 색 진할수록 팀 완성도 ↑ · 👑 = 다같이 간 비율 1위</span></h3>
+    <div class="kmap-body">
+      <div>
+        <div class="kmap-grid">${tiles}</div>
+        <div class="kmap-legend">
+          0%
+          <span class="swatch">
+            <span style="background:#f4f6f3"></span>
+            <span style="background:#dceadf"></span>
+            <span style="background:#b6d8c0"></span>
+            <span style="background:#7fb78c"></span>
+            <span style="background:#2f6a48"></span>
+          </span>
+          100%
+        </div>
+      </div>
+      <div class="kmap-detail">${detailHtml}</div>
+    </div>
+  `;
+
+  // 타일 클릭 → 지역 선택
+  document.querySelectorAll("#kmap .ktile").forEach(el => {
+    el.addEventListener("click", () => {
+      state.selectedRegion = el.dataset.r;
+      renderMap();
+    });
+  });
+}
+
+function renderRegionDetail(reg, groups) {
+  if (!reg) {
+    return '<div class="kmd-empty">아직 데이터가 없어요.</div>';
+  }
+  const g = groups.get(reg);
+  if (!g || g.mountains.length === 0) {
+    return `<h4>${escapeHtml(reg)} <span class="pill">0산</span></h4>
+            <div class="kmd-empty">이 지역에는 등록된 산이 없어요.</div>`;
+  }
+  // 원래 인덱스(색깔)
+  const origIdx = new Map(state.users.map((u, i) => [u.user_id, i]));
+
+  // 정렬: 다같이 간 산 먼저, 그 다음 인증인원 많은 순, 산이름순
+  const sorted = g.mountains.slice().sort((a, b) => {
+    const ca = climberIds(a.mountain_id).length;
+    const cb = climberIds(b.mountain_id).length;
+    if (cb !== ca) return cb - ca;
+    return (a.mountain_name || "").localeCompare(b.mountain_name || "");
+  });
+
+  const rows = sorted.map(m => {
+    const ids = climberIds(m.mountain_id);
+    const went = state.users.filter(u => ids.includes(u.user_id));
+    const notWent = state.users.filter(u => !ids.includes(u.user_id));
+    const wentChips = went.map(u => {
+      const i = origIdx.get(u.user_id);
+      return `<span class="kmd-mem" style="background:${userColor(i)}">✓ ${escapeHtml(u.user_name)}</span>`;
+    }).join("");
+    const noChips = notWent.map(u =>
+      `<span class="kmd-mem no">${escapeHtml(u.user_name)}</span>`
+    ).join("");
+    const allDone = state.users.length > 0 && went.length === state.users.length;
+    return `
+      <div class="kmd-row">
+        <div class="kmd-name">${allDone ? '<span style="color:#ec4899">♥ </span>' : ''}${escapeHtml(m.mountain_name)}
+          <small>${escapeHtml(m.spot || "")} ${m.height ? "· " + m.height + "m" : ""}</small>
+        </div>
+        <div class="kmd-mems">${wentChips}${noChips || (state.users.length === 0 ? '<span class="kmd-empty">멤버 없음</span>' : '')}</div>
+      </div>`;
+  }).join("");
+
+  const total = g.mountains.length;
+  return `<h4>${escapeHtml(reg)} <span class="pill">${total}산 · 다같이 ${g.allClimbed}/${total}</span></h4>${rows}`;
+}
+
+// ============================================================================
+// 퀵 로그: 누구나 자기 이름 + 산 + 날짜 등록
+// ============================================================================
+const LS_LASTUSER = "bac100_lastUser";
+
+function renderQuickLog() {
+  const u = document.getElementById("qlog-user");
+  const m = document.getElementById("qlog-mountain");
+  const list = document.getElementById("qlog-mountain-list");
+  const date = document.getElementById("qlog-date");
+
+  const lastUid = localStorage.getItem(LS_LASTUSER);
+  u.innerHTML = '<option value="">이름 선택…</option>' + state.users.map(usr =>
+    `<option value="${usr.user_id}" ${String(usr.user_id) === lastUid ? "selected" : ""}>${escapeHtml(usr.user_name)}</option>`
+  ).join("");
+
+  list.innerHTML = state.mountains.map(mt =>
+    `<option value="${escapeAttr(mt.mountain_name)} (${escapeAttr(mt.region)})">`
+  ).join("");
+
+  if (!date.value) date.value = ymd(new Date());
+}
+
+document.addEventListener("change", e => {
+  if (e.target && e.target.id === "qlog-user") {
+    if (e.target.value) localStorage.setItem(LS_LASTUSER, e.target.value);
+  }
+});
+
+document.addEventListener("click", async e => {
+  if (e.target && e.target.id === "qlog-add") {
+    const btn = e.target;
+    const uidStr = document.getElementById("qlog-user").value;
+    const mtnText = document.getElementById("qlog-mountain").value.trim();
+    const date = document.getElementById("qlog-date").value;
+    if (!uidStr) { alert("이름을 골라주세요"); return; }
+    if (!mtnText) { alert("산을 골라주세요"); return; }
+    if (!date) { alert("날짜를 골라주세요"); return; }
+
+    // 산 매칭: 1) 정확 일치 → 2) "이름 (지역)" 형식 → 3) 부분 일치
+    const txt = mtnText.trim();
+    let mtn = state.mountains.find(mm => mm.mountain_name === txt);
+    if (!mtn) {
+      const m1 = txt.match(/^(.+?)\s+\(([^()]+)\)\s*$/);
+      if (m1) {
+        const [, n, r] = m1;
+        mtn = state.mountains.find(mm => mm.mountain_name === n && mm.region === r);
+      }
+    }
+    if (!mtn) {
+      const partial = state.mountains.filter(mm => mm.mountain_name.includes(txt));
+      if (partial.length === 1) mtn = partial[0];
+    }
+    if (!mtn) {
+      alert(`'${txt}'에 맞는 산을 찾지 못했어요. 자동완성 목록에서 골라주세요.`);
+      return;
+    }
+
+    const uid = +uidStr;
+    const key = mtn.mountain_id + ":" + uid;
+    if (state.checks.has(key)) {
+      const u = state.users.find(x => x.user_id === uid);
+      if (!confirm(`${u.user_name}는 이미 ${mtn.mountain_name} 인증 기록이 있어요. 그래도 추가할까요? (날짜만 다를 수 있음)`)) return;
+    }
+
+    btn.disabled = true; btn.textContent = "저장중…";
+    try {
+      // 날짜를 명시적으로 보내서 등록
+      const rows = await api("/mountain_check", {
+        method: "POST",
+        headers: { "Prefer": "return=representation" },
+        body: JSON.stringify({ mountain_id: mtn.mountain_id, user_id: uid, climbed_at: date }),
+      });
+      const row = Array.isArray(rows) ? rows[0] : rows;
+      state.checks.set(key, row);
+      document.getElementById("qlog-mountain").value = "";
+      renderAll();
+      // 짧은 토스트
+      flash(`✓ ${mtn.mountain_name} 등록됨`);
+    } catch (err) {
+      alert("저장 실패: " + err.message);
+    } finally {
+      btn.disabled = false; btn.textContent = "+ 추가";
+    }
+  }
+});
+
+function flash(msg) {
+  let t = document.getElementById("__toast");
+  if (!t) {
+    t = document.createElement("div");
+    t.id = "__toast";
+    t.style.cssText = "position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1f2a25;color:white;padding:10px 18px;border-radius:99px;font-size:13px;box-shadow:0 8px 20px rgba(0,0,0,.2);z-index:100;transition:opacity .3s;";
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.style.opacity = "1";
+  clearTimeout(t._h);
+  t._h = setTimeout(() => { t.style.opacity = "0"; }, 1800);
+}
+
+// ============================================================================
+// 편집: 체크박스 토글 → Supabase 동기화
+// ============================================================================
+async function onToggleCheck(e) {
+  if (!state.edit) return;
+  const el = e.currentTarget;
+  const mid = +el.dataset.mid;
+  const uid = +el.dataset.uid;
+  const key = mid + ":" + uid;
+  const wasOn = state.checks.has(key);
+
+  el.classList.add("busy");
+  try {
+    if (wasOn) {
+      await Q.removeCheck(mid, uid);
+      state.checks.delete(key);
+    } else {
+      const rows = await Q.addCheck(mid, uid);
+      const row = Array.isArray(rows) ? rows[0] : rows;
+      state.checks.set(key, row);
+    }
+    renderAll();
+  } catch (err) {
+    alert("저장 실패: " + err.message + "\n\nRLS 정책 또는 네트워크 문제일 수 있어요.");
+  } finally {
+    el.classList.remove("busy");
+  }
+}
+
+// ============================================================================
+// 멤버 관리 모달
+// ============================================================================
+function openManage() {
+  const body = document.getElementById("modal-body");
+  const mountainsEmpty = state.mountains.length === 0;
+  body.innerHTML = `
+    <div>
+      <div class="sub" style="margin-bottom:6px">멤버 (${state.users.length}명)</div>
+      <div class="userlist" id="userlist"></div>
+      <div style="margin-top:12px; display:flex; gap:6px;">
+        <input type="text" id="new-user" placeholder="새 멤버 이름" />
+        <button class="btn primary" id="btn-add-user">추가</button>
+      </div>
+    </div>
+    ${mountainsEmpty ? `
+      <hr style="margin:16px 0; border:0; border-top:1px solid var(--line)" />
+      <div>
+        <div class="sub">mountain 테이블이 비어있어요.</div>
+        <button class="btn warn" id="btn-seed" style="margin-top:8px">100산 시드 채우기 (한 번만)</button>
+      </div>
+    ` : ""}
+  `;
+  renderUserList();
+  document.getElementById("modal-title").textContent = "멤버/관리";
+  document.getElementById("modal").classList.add("open");
+
+  document.getElementById("btn-add-user").addEventListener("click", async () => {
+    const name = document.getElementById("new-user").value.trim();
+    if (!name) return;
+    try {
+      const rows = await Q.addUser(name);
+      const u = Array.isArray(rows) ? rows[0] : rows;
+      state.users.push(u);
+      document.getElementById("new-user").value = "";
+      renderUserList();
+      renderAll();
+    } catch (e) { alert("추가 실패: " + e.message); }
+  });
+  if (mountainsEmpty) {
+    document.getElementById("btn-seed").addEventListener("click", async () => {
+      if (!confirm("100산 데이터를 한 번에 넣을게요. 진행할까요?")) return;
+      try {
+        await Q.bulkInsertMountains(seedRows());
+        alert("완료! 새로고침 합니다.");
+        document.getElementById("modal").classList.remove("open");
+        await loadAll();
+      } catch (e) { alert("실패: " + e.message); }
+    });
+  }
+}
+function renderUserList() {
+  const host = document.getElementById("userlist");
+  host.innerHTML = state.users.map((u, i) => `
+    <span class="userchip">
+      <span style="width:8px;height:8px;background:${userColor(i)};border-radius:50%"></span>
+      <span class="ed" data-uid="${u.user_id}" contenteditable="true">${escapeHtml(u.user_name)}</span>
+      <button data-uid="${u.user_id}" title="삭제">✕</button>
+    </span>
+  `).join("");
+  host.querySelectorAll(".ed").forEach(el => {
+    el.addEventListener("blur", async () => {
+      const uid = +el.dataset.uid;
+      const u = state.users.find(x => x.user_id === uid);
+      const newName = el.textContent.trim();
+      if (!newName || newName === u.user_name) return;
+      try {
+        await Q.updateUserName(uid, newName);
+        u.user_name = newName;
+        renderAll();
+      } catch (e) { alert("이름 변경 실패: " + e.message); el.textContent = u.user_name; }
+    });
+  });
+  host.querySelectorAll("button").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const uid = +btn.dataset.uid;
+      const u = state.users.find(x => x.user_id === uid);
+      if (!confirm(`'${u.user_name}' 멤버를 삭제할까요?\n인증 기록(mountain_check)이 외래키로 연결돼있으면 먼저 그쪽을 정리해야 할 수 있어요.`)) return;
+      try {
+        // 본인 인증 먼저 지우기
+        const myKeys = [];
+        state.checks.forEach((_, k) => { if (k.endsWith(":" + uid)) myKeys.push(k); });
+        for (const k of myKeys) {
+          const [mid] = k.split(":").map(Number);
+          await Q.removeCheck(mid, uid);
+          state.checks.delete(k);
+        }
+        await Q.removeUser(uid);
+        state.users = state.users.filter(x => x.user_id !== uid);
+        renderUserList();
+        renderAll();
+      } catch (e) { alert("삭제 실패: " + e.message); }
+    });
+  });
+}
+
+// ============================================================================
+// 이벤트 바인딩
+// ============================================================================
+document.getElementById("f-region").addEventListener("change", e => { state.filters.region = e.target.value; renderTable(); });
+document.getElementById("f-status").addEventListener("change", e => { state.filters.status = e.target.value; renderTable(); });
+document.getElementById("f-member").addEventListener("change", e => { state.filters.member = e.target.value; renderTable(); });
+document.getElementById("f-member-state").addEventListener("change", e => { state.filters.memberState = e.target.value; renderTable(); });
+document.getElementById("f-search").addEventListener("input", e => { state.filters.search = e.target.value; renderTable(); });
+
+document.getElementById("btn-edit").addEventListener("click", () => { state.edit = !state.edit; renderAll(); });
+document.getElementById("btn-refresh").addEventListener("click", loadAll);
+document.getElementById("btn-manage").addEventListener("click", openManage);
+document.getElementById("modal-close").addEventListener("click", () => document.getElementById("modal").classList.remove("open"));
+document.getElementById("modal").addEventListener("click", (e) => { if (e.target.id === "modal") document.getElementById("modal").classList.remove("open"); });
+
+// ============================================================================
+// 유틸
+// ============================================================================
+function escapeHtml(s) {
+  return String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+}
+function escapeAttr(s) { return escapeHtml(s); }
+function short(s) { s = String(s||""); return s.length > 5 ? s.slice(0, 5) + "…" : s; }
+
+// 시작
+loadAll();
+</script>
+</body>
+</html>
