@@ -147,6 +147,11 @@
     cursor: pointer; font-weight: 600; font-family: inherit;
   }
   .m-card .mck.on { color: white; border-color: transparent; }
+  .m-card .mck.wish {
+    border-style: dashed; border-width: 1.5px;
+    background: white;
+  }
+  .m-card .mck.wish::before { content: "🎯 "; }
   .m-card .mck.locked { cursor: default; }
   .m-card .mck.busy { opacity: .4; pointer-events: none; }
   .m-card .note { font-size: 11px; color: var(--warn); margin-top: 6px; }
@@ -181,6 +186,23 @@
     .nav-row .global-btns { justify-content: flex-end; }
     .nav-row .global-btns button { padding: 8px 12px; }
   }
+
+  /* 위시리스트 — 날짜 배지 */
+  .dbadge {
+    display: inline-block; font-size: 10px; padding: 1px 7px; border-radius: 99px;
+    font-weight: 700; vertical-align: middle;
+  }
+  .dbadge.urgent  { background: #fee2e2; color: #b91c1c; }
+  .dbadge.future  { background: var(--primary-soft); color: var(--primary); }
+  .dbadge.past    { background: #fef3c7; color: #92400e; }
+  .dbadge.none    { background: #eef2ee; color: var(--muted); }
+  .wish-date-row { font-size: 11px; color: var(--muted); margin-top: 2px; display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+  .wish-date-text { font-variant-numeric: tabular-nums; }
+  .ldate {
+    border: 1px solid var(--line); background: white; color: var(--ink);
+    border-radius: 6px; padding: 4px 8px; font: inherit; font-size: 12px; cursor: pointer;
+  }
+  .ldate:hover { background: var(--primary-soft); }
 
   /* 위시리스트 placeholder */
   .wish-stub {
@@ -650,9 +672,40 @@
   </div><!-- /tab-log -->
 
   <div id="tab-wish" class="tab-pane" style="display:none">
-    <div class="wish-stub">
-      <h2>🎯 위시리스트 (산 갈거야!)</h2>
-      <p style="margin: 0 0 4px">곧 다음 단계로 만들어드릴게요.</p>
+    <div class="qlog-big">
+      <h2>🎯 산 갈거야!</h2>
+      <div class="field">
+        <label>이름</label>
+        <select id="wish-user"><option value="">이름 선택</option></select>
+      </div>
+      <div class="field">
+        <label>산</label>
+        <input type="text" id="wish-mountain" list="wish-mountain-list" placeholder="산 이름 검색…" autocomplete="off" />
+        <datalist id="wish-mountain-list"></datalist>
+      </div>
+      <div class="field">
+        <label>갈 날짜</label>
+        <input type="date" id="wish-date" placeholder="(선택) 비우면 '언젠가'" />
+      </div>
+      <div class="submit-row">
+        <button id="wish-add" class="primary">+ 위시리스트 추가</button>
+      </div>
+      <div class="hint">날짜는 선택. 비우면 '언젠가'로 들어가요. 같은 산을 2명 이상 위시하면 아래 「다같이 가고싶은 산」에 떠요. 인증 등록 시 위시에 있는 산이면 자동으로 인증 전환.</div>
+    </div>
+
+    <div class="log-list">
+      <h2>🌟 다같이 가고싶은 산 <span class="sub" style="font-weight:400;font-size:12px">(2명 이상)</span></h2>
+      <div id="wish-together-rows"></div>
+    </div>
+
+    <div class="log-list">
+      <h2>📋 위시리스트</h2>
+      <div class="filter-row">
+        <label>이름:</label>
+        <select id="wish-filter-user"></select>
+        <span class="sub" id="wish-count" style="margin-left:auto"></span>
+      </div>
+      <div id="wish-list-rows"></div>
     </div>
   </div><!-- /tab-wish -->
 
@@ -724,17 +777,46 @@ const Q = {
   users:     () => api("/user?select=*&order=user_id.asc"),
   checks:    () => api("/mountain_check?select=*"),
 
-  addCheck: (mountain_id, user_id) => api("/mountain_check", {
+  addCheck: (mountain_id, user_id, climbed_at) => api("/mountain_check", {
     method: "POST",
     headers: { "Prefer": "return=representation" },
     body: JSON.stringify({
-      mountain_id, user_id,
-      climbed_at: new Date().toISOString().slice(0,10),
+      mountain_id, user_id, status: 1,
+      climbed_at: climbed_at || new Date().toISOString().slice(0,10),
     }),
   }),
   removeCheck: (mountain_id, user_id) => api(
-    `/mountain_check?mountain_id=eq.${mountain_id}&user_id=eq.${user_id}`,
+    `/mountain_check?mountain_id=eq.${mountain_id}&user_id=eq.${user_id}&status=eq.1`,
     { method: "DELETE", headers: { "Prefer": "return=minimal" } }
+  ),
+  // 위시리스트 (status=0). climbed_at 을 "갈 예정 날짜"로 함께 사용.
+  addWish: (mountain_id, user_id, planned_at) => api("/mountain_check", {
+    method: "POST",
+    headers: { "Prefer": "return=representation" },
+    body: JSON.stringify({
+      mountain_id, user_id, status: 0,
+      climbed_at: planned_at || null,
+    }),
+  }),
+  // 위시 날짜만 변경
+  updateWishDate: (id, planned_at) => api(
+    `/mountain_check?id=eq.${id}`,
+    { method: "PATCH", headers: { "Prefer": "return=representation" }, body: JSON.stringify({ climbed_at: planned_at || null }) }
+  ),
+  removeWish: (mountain_id, user_id) => api(
+    `/mountain_check?mountain_id=eq.${mountain_id}&user_id=eq.${user_id}&status=eq.0`,
+    { method: "DELETE", headers: { "Prefer": "return=minimal" } }
+  ),
+  // 위시 → 인증 전환 (id 로 직접 PATCH)
+  completeWish: (id, climbed_at) => api(
+    `/mountain_check?id=eq.${id}`,
+    { method: "PATCH", headers: { "Prefer": "return=representation" },
+      body: JSON.stringify({ status: 1, climbed_at: climbed_at || new Date().toISOString().slice(0,10) }) }
+  ),
+  // 인증 날짜 수정
+  updateClimbedAt: (id, climbed_at) => api(
+    `/mountain_check?id=eq.${id}`,
+    { method: "PATCH", headers: { "Prefer": "return=representation" }, body: JSON.stringify({ climbed_at }) }
   ),
   addUser: (user_name) => api("/user", {
     method: "POST",
@@ -921,15 +1003,39 @@ function hideBanner() { document.getElementById("banner").style.display = "none"
 // 렌더링
 // ============================================================================
 function userColor(idx) { return COLORS[idx % COLORS.length]; }
-function isClimbed(mid, uid) { return state.checks.has(mid + ":" + uid); }
+
+// status 헬퍼: status===1 → 인증, status===0 → 위시. status 없거나 null인 레거시 row는 climbed_at 있으면 인증으로 간주.
+function climbedRow(c) {
+  if (!c) return false;
+  if (c.status === 1 || c.status === true) return true;
+  if (c.status === 0 || c.status === false) return false;
+  return !!c.climbed_at;
+}
+function wishRow(c) {
+  return !!c && (c.status === 0 || c.status === false);
+}
+
+function isClimbed(mid, uid) { return climbedRow(state.checks.get(mid + ":" + uid)); }
+function isWish(mid, uid)    { return wishRow(state.checks.get(mid + ":" + uid)); }
+
 function userClimbCount(uid) {
   let n = 0;
-  state.checks.forEach((_, k) => { if (k.endsWith(":" + uid)) n++; });
+  state.checks.forEach((c, k) => { if (k.endsWith(":" + uid) && climbedRow(c)) n++; });
+  return n;
+}
+function userWishCount(uid) {
+  let n = 0;
+  state.checks.forEach((c, k) => { if (k.endsWith(":" + uid) && wishRow(c)) n++; });
   return n;
 }
 function climberIds(mid) {
   const ids = [];
   state.users.forEach(u => { if (isClimbed(mid, u.user_id)) ids.push(u.user_id); });
+  return ids;
+}
+function wisherIds(mid) {
+  const ids = [];
+  state.users.forEach(u => { if (isWish(mid, u.user_id)) ids.push(u.user_id); });
   return ids;
 }
 function regionGroup(reg) { return (reg || "").split(/[\/ ]/)[0]; }
@@ -1207,6 +1313,7 @@ function ymd(d) {
 function renderDashboard() {
   const dated = [];
   state.checks.forEach(c => {
+    if (!climbedRow(c)) return;  // 위시는 제외
     if (c.climbed_at) {
       const d = new Date(c.climbed_at);
       if (!isNaN(d)) dated.push({...c, dt: d, year: d.getFullYear(), month: d.getMonth()+1});
@@ -1542,11 +1649,17 @@ function renderTable() {
       <td class="note">${escapeHtml(m.note || "")}</td>
     </tr>`;
 
-    // 카드용 칩 (모바일)
+    // 카드용 칩 (모바일) — 인증/위시/없음 3가지 상태
     const chips = state.users.map((u, i) => {
       const on = ids.includes(u.user_id);
-      const cls = "mck" + (on ? " on" : "") + (state.edit ? "" : " locked");
-      const style = on ? `style="background:${userColor(i)};border-color:${userColor(i)}"` : "";
+      const wishing = !on && isWish(m.mountain_id, u.user_id);
+      let cls = "mck";
+      if (on) cls += " on";
+      else if (wishing) cls += " wish";
+      if (!state.edit) cls += " locked";
+      let style = "";
+      if (on) style = `style="background:${userColor(i)};border-color:${userColor(i)}"`;
+      else if (wishing) style = `style="border-color:${userColor(i)};color:${userColor(i)}"`;
       return `<button class="${cls}" data-mid="${m.mountain_id}" data-uid="${u.user_id}" ${style}>${on ? "✓ " : ""}${escapeHtml(u.user_name)}</button>`;
     }).join("");
 
@@ -1613,6 +1726,7 @@ function renderAll() {
   renderMap();
   renderQuickLog();
   renderLogList();
+  renderWishTab();
   renderTable();
   document.getElementById("btn-edit").textContent = state.edit ? "🔒 편집 끄기" : "✏️ 편집모드";
   document.getElementById("btn-edit").classList.toggle("primary", state.edit);
@@ -1658,9 +1772,10 @@ function renderLogList() {
   const userIdx = new Map(state.users.map((u, i) => [u.user_id, i]));
   const userById = new Map(state.users.map(u => [u.user_id, u]));
 
-  // 인증 데이터 모으기 (날짜 있는 것 + 없는 것 모두)
+  // 인증 데이터 모으기 — status=1 만 (위시는 별도 탭에서)
   const all = [];
   state.checks.forEach(c => {
+    if (!climbedRow(c)) return;
     if (uidFilter && String(c.user_id) !== uidFilter) return;
     all.push(c);
   });
@@ -1726,6 +1841,293 @@ function renderLogList() {
 document.addEventListener("change", e => {
   if (e.target && e.target.id === "log-filter-user") {
     renderLogList();
+  }
+  if (e.target && e.target.id === "wish-filter-user") {
+    renderWishList();
+  }
+  if (e.target && e.target.id === "wish-user" && e.target.value) {
+    localStorage.setItem(LS_LASTUSER, e.target.value);
+  }
+});
+
+// ============================================================================
+// 위시리스트 (status=0 인 mountain_check 행)
+// ============================================================================
+function renderWishTab() {
+  const u  = document.getElementById("wish-user");
+  const f  = document.getElementById("wish-filter-user");
+  const ml = document.getElementById("wish-mountain-list");
+  if (!u || !f) return;
+
+  const lastUid = localStorage.getItem(LS_LASTUSER);
+
+  // 등록 폼: 이름 드롭다운
+  const curU = u.value || lastUid || "";
+  u.innerHTML = '<option value="">이름 선택…</option>' +
+    state.users.map(usr => `<option value="${usr.user_id}">${escapeHtml(usr.user_name)}</option>`).join("");
+  u.value = curU;
+
+  // 산 자동완성
+  if (ml) {
+    ml.innerHTML = state.mountains.map(mt =>
+      `<option value="${escapeAttr(mt.mountain_name)} (${escapeAttr(mt.region)})">`
+    ).join("");
+  }
+
+  // 필터 드롭다운
+  const curF = f.value || lastUid || "";
+  f.innerHTML = '<option value="">전체 멤버</option>' +
+    state.users.map(usr => `<option value="${usr.user_id}">${escapeHtml(usr.user_name)}</option>`).join("");
+  f.value = curF;
+
+  renderWishList();
+}
+
+// D-day 계산: 오늘 기준 며칠 차이. null = 날짜 없음
+function dDay(dateStr) {
+  if (!dateStr) return null;
+  const d = new Date(dateStr); if (isNaN(d)) return null;
+  const today = new Date();
+  d.setHours(0,0,0,0); today.setHours(0,0,0,0);
+  return Math.round((d - today) / 86400000);
+}
+function dDayBadge(dateStr) {
+  const d = dDay(dateStr);
+  if (d === null) return `<span class="dbadge none">언젠가</span>`;
+  if (d === 0)   return `<span class="dbadge urgent">🔥 D-day</span>`;
+  if (d > 0)     return `<span class="dbadge future">D-${d}</span>`;
+  return `<span class="dbadge past">${-d}일 지남</span>`;
+}
+
+function renderWishList() {
+  const f = document.getElementById("wish-filter-user");
+  if (!f) return;
+  const uidFilter = f.value;
+  const userIdx = new Map(state.users.map((u, i) => [u.user_id, i]));
+  const userById = new Map(state.users.map(u => [u.user_id, u]));
+
+  // 위시 모으기
+  const wishes = [];
+  state.checks.forEach(c => {
+    if (!wishRow(c)) return;
+    if (uidFilter && String(c.user_id) !== uidFilter) return;
+    wishes.push(c);
+  });
+  // 정렬: 임박한 미래 → 지난 일정 → 날짜 없음
+  wishes.sort((a, b) => {
+    const da = dDay(a.climbed_at);
+    const db = dDay(b.climbed_at);
+    const ba = da === null ? 3 : da >= 0 ? 1 : 2;
+    const bb = db === null ? 3 : db >= 0 ? 1 : 2;
+    if (ba !== bb) return ba - bb;
+    if (ba === 1) return da - db;          // 미래는 가까운 거 먼저 (D-1, D-7...)
+    if (ba === 2) return db - da;          // 지난 건 최근 거 먼저
+    return (b.id || 0) - (a.id || 0);     // 날짜 없는 건 최근 추가 순
+  });
+
+  const cntEl = document.getElementById("wish-count");
+  if (cntEl) cntEl.textContent = `${wishes.length}건`;
+
+  // 위시 리스트
+  const rowsEl = document.getElementById("wish-list-rows");
+  if (rowsEl) {
+    if (wishes.length === 0) {
+      rowsEl.innerHTML = `<div class="empty">위시리스트가 비어있어요. 위 폼에서 추가해보세요.</div>`;
+    } else {
+      rowsEl.innerHTML = wishes.map(c => {
+        const m = state.mountains.find(mm => mm.mountain_id === c.mountain_id);
+        const u = userById.get(c.user_id);
+        const i = userIdx.get(c.user_id) ?? 0;
+        const dateInfo = c.climbed_at
+          ? `<span class="wish-date-text">${escapeHtml(c.climbed_at)}</span> ${dDayBadge(c.climbed_at)}`
+          : dDayBadge(null);
+        return `<div class="log-row wish-row" data-cid="${c.id || ''}" data-mid="${c.mountain_id}" data-uid="${c.user_id}" data-date="${c.climbed_at || ''}">
+          <div class="lmtn">${m ? escapeHtml(m.mountain_name) : '?'}<small>${m ? escapeHtml(m.region) : ''}${m && m.height ? ' · ' + m.height + 'm' : ''}</small><div class="wish-date-row">${dateInfo}</div></div>
+          <span class="luser" style="background:${userColor(i)}">${u ? escapeHtml(u.user_name) : '?'}</span>
+          <button class="ldate" title="날짜 변경">📅</button>
+          <button class="ldone" title="다녀와서 인증으로 전환">✓ 다녀옴</button>
+          <button class="ldel" title="위시에서 빼기">삭제</button>
+        </div>`;
+      }).join("");
+      // 핸들러
+      rowsEl.querySelectorAll(".ldone").forEach(btn => btn.addEventListener("click", onWishComplete));
+      rowsEl.querySelectorAll(".ldel").forEach(btn => btn.addEventListener("click", onWishDelete));
+      rowsEl.querySelectorAll(".ldate").forEach(btn => btn.addEventListener("click", onWishDateChange));
+    }
+  }
+
+  // 다같이 가고싶은 산 (2명 이상)
+  const togetherEl = document.getElementById("wish-together-rows");
+  if (!togetherEl) return;
+  const mountainWishes = new Map();
+  state.checks.forEach(c => {
+    if (!wishRow(c)) return;
+    if (!mountainWishes.has(c.mountain_id)) mountainWishes.set(c.mountain_id, []);
+    mountainWishes.get(c.mountain_id).push({ uid: c.user_id, date: c.climbed_at });
+  });
+  const together = [];
+  mountainWishes.forEach((entries, mid) => {
+    if (entries.length >= 2) {
+      // 멤버별 가장 가까운 미래 날짜 찾기 (또는 가장 빠른 날짜)
+      const dates = entries.map(e => e.date).filter(Boolean).sort();
+      const earliest = dates[0] || null;
+      together.push({ mid, entries, earliest });
+    }
+  });
+  // 정렬: 가까운 미래 일정 → 미정/먼 일정. 인원수도 가중치
+  together.sort((a, b) => {
+    const da = dDay(a.earliest);
+    const db = dDay(b.earliest);
+    const ba = da === null ? 3 : da >= 0 ? 1 : 2;
+    const bb = db === null ? 3 : db >= 0 ? 1 : 2;
+    if (ba !== bb) return ba - bb;
+    if (ba === 1) return da - db;
+    if (ba === 2) return db - da;
+    return b.entries.length - a.entries.length;
+  });
+
+  if (together.length === 0) {
+    togetherEl.innerHTML = `<div class="empty">아직 같이 가고 싶은 산이 없어요. 같은 산을 2명 이상 위시에 추가하면 여기 떠요.</div>`;
+  } else {
+    togetherEl.innerHTML = together.map(o => {
+      const m = state.mountains.find(mm => mm.mountain_id === o.mid);
+      const chips = o.entries.map(en => {
+        const usr = state.users.find(x => x.user_id === en.uid);
+        const i = userIdx.get(en.uid) ?? 0;
+        const dateLabel = en.date ? ` <span style="opacity:.85;font-size:10px">(${en.date.slice(5)})</span>` : "";
+        return `<span class="luser" style="background:${userColor(i)};margin-right:4px">${usr ? escapeHtml(usr.user_name) : '?'}${dateLabel}</span>`;
+      }).join("");
+      const dateBadge = o.earliest ? `${dDayBadge(o.earliest)}` : dDayBadge(null);
+      return `<div class="log-row">
+        <div class="lmtn">${m ? escapeHtml(m.mountain_name) : '?'}<small>${m ? escapeHtml(m.region) : ''}${m && m.height ? ' · ' + m.height + 'm' : ''}</small><div class="wish-date-row">${dateBadge}${o.earliest ? ' · 가장 빠른 일정 <b>'+escapeHtml(o.earliest)+'</b>' : ''}</div></div>
+        <span class="sub" style="font-weight:700;font-size:13px;color:var(--accent)">${o.entries.length}명</span>
+        <div style="display:flex;flex-wrap:wrap">${chips}</div>
+      </div>`;
+    }).join("");
+  }
+}
+
+async function onWishComplete(e) {
+  const row = e.target.closest(".log-row");
+  const cid = row.dataset.cid;
+  const mid = +row.dataset.mid;
+  const uid = +row.dataset.uid;
+  const planned = row.dataset.date || "";
+  const m = state.mountains.find(x => x.mountain_id === mid);
+  const u = state.users.find(x => x.user_id === uid);
+  const today = new Date().toISOString().slice(0,10);
+  // 계획일이 과거면 그날, 아니면 오늘을 기본값으로
+  const def = (planned && new Date(planned) <= new Date(today)) ? planned : today;
+  const date = prompt(`${u ? u.user_name : '?'}님이 ${m ? m.mountain_name : '?'} 다녀온 날짜 (YYYY-MM-DD)`, def);
+  if (!date) return;
+  e.target.disabled = true; e.target.textContent = "처리중…";
+  try {
+    const rows = await Q.completeWish(+cid, date);
+    const newRow = Array.isArray(rows) ? rows[0] : rows;
+    state.checks.set(mid + ":" + uid, newRow);
+    renderAll();
+    flash(`🎉 ${m ? m.mountain_name : '?'} 인증 완료!`);
+  } catch (err) {
+    alert("실패: " + err.message);
+    e.target.disabled = false; e.target.textContent = "✓ 다녀옴";
+  }
+}
+
+async function onWishDateChange(e) {
+  const row = e.target.closest(".log-row");
+  const cid = row.dataset.cid;
+  const mid = +row.dataset.mid;
+  const uid = +row.dataset.uid;
+  const cur = row.dataset.date || "";
+  const newDate = prompt(`갈 예정 날짜 (YYYY-MM-DD)\n비워두면 '언젠가'로 바뀝니다.`, cur);
+  if (newDate === null) return; // 취소
+  const cleaned = newDate.trim() || null;
+  e.target.disabled = true;
+  try {
+    const rows = await Q.updateWishDate(+cid, cleaned);
+    const newRow = Array.isArray(rows) ? rows[0] : rows;
+    state.checks.set(mid + ":" + uid, newRow);
+    renderAll();
+    flash(cleaned ? `📅 ${cleaned}로 변경됨` : "📅 '언젠가'로 변경됨");
+  } catch (err) {
+    alert("날짜 변경 실패: " + err.message);
+  } finally {
+    e.target.disabled = false;
+  }
+}
+
+async function onWishDelete(e) {
+  const row = e.target.closest(".log-row");
+  const mid = +row.dataset.mid;
+  const uid = +row.dataset.uid;
+  const m = state.mountains.find(x => x.mountain_id === mid);
+  const u = state.users.find(x => x.user_id === uid);
+  if (!confirm(`${u ? u.user_name : '?'}님의 ${m ? m.mountain_name : '?'} 위시를 지울까요?`)) return;
+  e.target.disabled = true; e.target.textContent = "지우는중…";
+  try {
+    await Q.removeWish(mid, uid);
+    state.checks.delete(mid + ":" + uid);
+    renderAll();
+    flash("✓ 삭제됨");
+  } catch (err) {
+    alert("삭제 실패: " + err.message);
+    e.target.disabled = false; e.target.textContent = "삭제";
+  }
+}
+
+// 위시 추가 버튼
+document.addEventListener("click", async e => {
+  if (!e.target || e.target.id !== "wish-add") return;
+  const btn = e.target;
+  const uidStr = document.getElementById("wish-user").value;
+  const mtnText = document.getElementById("wish-mountain").value.trim();
+  const plannedDate = document.getElementById("wish-date").value || null;
+  if (!uidStr) { alert("이름을 골라주세요"); return; }
+  if (!mtnText) { alert("산을 골라주세요"); return; }
+
+  // 산 매칭 (qlog와 동일 로직)
+  const txt = mtnText;
+  let mtn = state.mountains.find(mm => mm.mountain_name === txt);
+  if (!mtn) {
+    const m1 = txt.match(/^(.+?)\s+\(([^()]+)\)\s*$/);
+    if (m1) {
+      const [, n, r] = m1;
+      mtn = state.mountains.find(mm => mm.mountain_name === n && mm.region === r);
+    }
+  }
+  if (!mtn) {
+    const partial = state.mountains.filter(mm => mm.mountain_name.includes(txt));
+    if (partial.length === 1) mtn = partial[0];
+  }
+  if (!mtn) { alert(`'${txt}'에 맞는 산을 찾지 못했어요.`); return; }
+
+  const uid = +uidStr;
+  const u = state.users.find(x => x.user_id === uid);
+  const key = mtn.mountain_id + ":" + uid;
+  const existing = state.checks.get(key);
+  if (climbedRow(existing)) {
+    alert(`${u.user_name}는 이미 ${mtn.mountain_name} 인증한 산이에요!`);
+    return;
+  }
+  if (wishRow(existing)) {
+    alert(`이미 위시리스트에 있어요.`);
+    return;
+  }
+
+  btn.disabled = true; btn.textContent = "저장중…";
+  try {
+    const rows = await Q.addWish(mtn.mountain_id, uid, plannedDate);
+    const row = Array.isArray(rows) ? rows[0] : rows;
+    state.checks.set(key, row);
+    document.getElementById("wish-mountain").value = "";
+    document.getElementById("wish-date").value = "";
+    renderAll();
+    const dateMsg = plannedDate ? ` (${plannedDate})` : "";
+    flash(`🎯 ${mtn.mountain_name} 위시리스트 추가${dateMsg}!`);
+  } catch (err) {
+    alert("저장 실패: " + err.message);
+  } finally {
+    btn.disabled = false; btn.textContent = "+ 위시리스트 추가";
   }
 });
 
@@ -1938,29 +2340,39 @@ document.addEventListener("click", async e => {
 
     const uid = +uidStr;
     const key = mtn.mountain_id + ":" + uid;
-    if (state.checks.has(key)) {
-      const u = state.users.find(x => x.user_id === uid);
-      if (!confirm(`${u.user_name}는 이미 ${mtn.mountain_name} 인증 기록이 있어요. 그래도 추가할까요? (날짜만 다를 수 있음)`)) return;
+    const existing = state.checks.get(key);
+    const u = state.users.find(x => x.user_id === uid);
+
+    if (climbedRow(existing)) {
+      if (!confirm(`${u.user_name}는 이미 ${mtn.mountain_name} 인증 기록이 있어요. 날짜를 ${date}로 바꿀까요?`)) return;
     }
 
     btn.disabled = true; btn.textContent = "저장중…";
     try {
-      // 날짜를 명시적으로 보내서 등록
-      const rows = await api("/mountain_check", {
-        method: "POST",
-        headers: { "Prefer": "return=representation" },
-        body: JSON.stringify({ mountain_id: mtn.mountain_id, user_id: uid, climbed_at: date }),
-      });
-      const row = Array.isArray(rows) ? rows[0] : rows;
+      let row;
+      if (climbedRow(existing) && existing.id) {
+        // 이미 인증된 산 → 날짜만 수정
+        const rows = await Q.updateClimbedAt(existing.id, date);
+        row = Array.isArray(rows) ? rows[0] : rows;
+        flash(`✓ ${mtn.mountain_name} 날짜 변경됨`);
+      } else if (wishRow(existing) && existing.id) {
+        // 위시리스트에 있던 산 → 인증으로 전환
+        const rows = await Q.completeWish(existing.id, date);
+        row = Array.isArray(rows) ? rows[0] : rows;
+        flash(`🎉 ${mtn.mountain_name} 위시리스트 → 인증 완료!`);
+      } else {
+        // 새 인증 등록
+        const rows = await Q.addCheck(mtn.mountain_id, uid, date);
+        row = Array.isArray(rows) ? rows[0] : rows;
+        flash(`✓ ${mtn.mountain_name} 등록됨`);
+      }
       state.checks.set(key, row);
       document.getElementById("qlog-mountain").value = "";
       renderAll();
-      // 짧은 토스트
-      flash(`✓ ${mtn.mountain_name} 등록됨`);
     } catch (err) {
       alert("저장 실패: " + err.message);
     } finally {
-      btn.disabled = false; btn.textContent = "+ 추가";
+      btn.disabled = false; btn.textContent = "+ 인증 등록";
     }
   }
 });
@@ -1988,14 +2400,22 @@ async function onToggleCheck(e) {
   const mid = +el.dataset.mid;
   const uid = +el.dataset.uid;
   const key = mid + ":" + uid;
-  const wasOn = state.checks.has(key);
+  const existing = state.checks.get(key);
+  const wasClimbed = climbedRow(existing);
 
   el.classList.add("busy");
   try {
-    if (wasOn) {
+    if (wasClimbed) {
+      // 인증 해제 → row 삭제
       await Q.removeCheck(mid, uid);
       state.checks.delete(key);
+    } else if (existing && wishRow(existing) && existing.id) {
+      // 위시리스트에 있던 산 → 인증으로 전환 (status: 0 → 1)
+      const rows = await Q.completeWish(existing.id);
+      const row = Array.isArray(rows) ? rows[0] : rows;
+      state.checks.set(key, row);
     } else {
+      // 새로 인증 추가
       const rows = await Q.addCheck(mid, uid);
       const row = Array.isArray(rows) ? rows[0] : rows;
       state.checks.set(key, row);
